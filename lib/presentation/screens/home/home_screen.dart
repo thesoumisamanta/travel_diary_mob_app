@@ -12,7 +12,7 @@ import 'widgets/post_card.dart';
 import 'widgets/story_card.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -110,10 +110,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    if (_selectedIndex != 0) return const PreferredSize(
+    if (_selectedIndex != 0) {
+      return const PreferredSize(
       preferredSize: Size.fromHeight(0),
       child: SizedBox.shrink(),
     );
+    }
 
     return AppBar(
       title: Text(

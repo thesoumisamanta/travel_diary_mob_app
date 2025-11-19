@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'https://api.traveldiaryapp.com/api/v1';
+  static const String baseUrl = 'http://10.0.2.2:8000/api';
   
   // Auth Endpoints
   static const String login = '/auth/login';

@@ -7,11 +7,10 @@ import 'package:travel_diary_mob_app/business_logic/auth_bloc/auth_event.dart';
 
 import '../../../business_logic/app_bloc/app_state.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../widgets/custom_button.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -91,7 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     Container(
                       height: 150,
                       width: double.infinity,
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       child: user.coverPicture != null
                           ? CachedNetworkImage(
                               imageUrl: user.coverPicture!,

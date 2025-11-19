@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:travel_diary_mob_app/routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'business_logic/auth_bloc/auth_bloc.dart';
 import 'business_logic/auth_bloc/auth_state.dart';
@@ -18,6 +19,8 @@ class App extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
+      onGenerateRoute: AppRoutes.generateRoute,
+      initialRoute: AppRoutes.login,
       home: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           if (state is AuthLoading) {

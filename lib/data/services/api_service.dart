@@ -12,22 +12,16 @@ class ApiService {
   }
 
   // Auth APIs
-  Future<ApiResponse> login(String email, String password) async {
+  Future<ApiResponse> login(String identifier, String password) async {
     final response = await _apiClient.post(
       ApiConstants.login,
-      data: {
-        'email': email,
-        'password': password,
-      },
+      data: {'identifier': identifier, 'password': password},
     );
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> register(Map<String, dynamic> data) async {
-    final response = await _apiClient.post(
-      ApiConstants.register,
-      data: data,
-    );
+    final response = await _apiClient.post(ApiConstants.register, data: data);
     return ApiResponse.fromJson(response.data, null);
   }
 
@@ -103,14 +97,14 @@ class ApiService {
   }
 
   Future<ApiResponse> createPost(Map<String, dynamic> data) async {
-    final response = await _apiClient.post(
-      ApiConstants.createPost,
-      data: data,
-    );
+    final response = await _apiClient.post(ApiConstants.createPost, data: data);
     return ApiResponse.fromJson(response.data, null);
   }
 
-  Future<ApiResponse> updatePost(String postId, Map<String, dynamic> data) async {
+  Future<ApiResponse> updatePost(
+    String postId,
+    Map<String, dynamic> data,
+  ) async {
     final response = await _apiClient.put(
       '${ApiConstants.updatePost}/$postId',
       data: data,
@@ -119,7 +113,9 @@ class ApiService {
   }
 
   Future<ApiResponse> deletePost(String postId) async {
-    final response = await _apiClient.delete('${ApiConstants.deletePost}/$postId');
+    final response = await _apiClient.delete(
+      '${ApiConstants.deletePost}/$postId',
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
@@ -129,7 +125,9 @@ class ApiService {
   }
 
   Future<ApiResponse> unlikePost(String postId) async {
-    final response = await _apiClient.post('${ApiConstants.unlikePost}/$postId');
+    final response = await _apiClient.post(
+      '${ApiConstants.unlikePost}/$postId',
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
@@ -243,10 +241,9 @@ class ApiService {
   }) async {
     final formData = FormData();
     for (var file in files) {
-      formData.files.add(MapEntry(
-        'files',
-        await MultipartFile.fromFile(file.path),
-      ));
+      formData.files.add(
+        MapEntry('files', await MultipartFile.fromFile(file.path)),
+      );
     }
 
     final response = await _apiClient.post(

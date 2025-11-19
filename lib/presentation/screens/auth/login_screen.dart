@@ -10,7 +10,7 @@ import '../../widgets/custom_text_field.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -37,12 +37,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
+      final input = _emailController.text.trim();
+
+      String? email;
+      String? username;
+
+      // Check if input contains '@' → it's an email
+      if (input.contains('@')) {
+        email = input;
+      } else {
+        username = input;
+      }
+
       context.read<AuthBloc>().add(
-            AuthLoginRequested(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-            ),
-          );
+        AuthLoginRequested(
+          identifier: _emailController.text.trim(),
+          password: _passwordController.text,
+        ),
+      );
     }
   }
 
@@ -59,6 +71,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             );
           }
+          if (state is AuthAuthenticated) {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
         },
         child: SingleChildScrollView(
           child: Padding(
@@ -72,25 +87,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Travel Diary',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Share Your Travel Stories',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   SizedBox(height: MediaQuery.of(context).size.height * 0.08),
                   CustomTextField(
                     controller: _emailController,
-                    label: 'Email',
-                    hint: 'Enter your email',
-                    keyboardType: TextInputType.emailAddress,
+                    label: 'Email or Username',
+                    hint: 'Enter your email or username',
+                    // keyboardType: TextInputType.emailAddress,
                     prefixIcon: const Icon(Icons.email_outlined),
-                    validator: Validators.validateEmail,
+                    // validator: Validators.validateEmail,
                   ),
                   const SizedBox(height: 24),
                   CustomTextField(
@@ -135,7 +150,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                         child: Text(
                           'Sign Up',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),

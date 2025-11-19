@@ -53,13 +53,13 @@ class TravelDiaryApp extends StatelessWidget {
   final StorageRepository storageRepository;
 
   const TravelDiaryApp({
-    Key? key,
+    super.key,
     required this.authRepository,
     required this.userRepository,
     required this.postRepository,
     required this.chatRepository,
     required this.storageRepository,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
