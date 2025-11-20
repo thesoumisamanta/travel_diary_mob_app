@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:travel_diary_mob_app/data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/storage_repository.dart';
 import 'auth_event.dart';
@@ -10,7 +9,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final StorageRepository storageRepository;
 
   AuthBloc({required this.authRepository, required this.storageRepository})
-    : super(AuthInitial()) {
+      : super(AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<AuthLoginRequested>(_onAuthLoginRequested);
     on<AuthRegisterRequested>(_onAuthRegisterRequested);
@@ -24,7 +23,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     try {
-      // Use the public method on AuthRepository to see if token exists
       final authenticated = await authRepository.isAuthenticated();
 
       if (!authenticated) {
@@ -32,13 +30,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      // authRepository.isAuthenticated() already set the token on the ApiService.
-      // Now fetch the full user profile via the repository
       final user = await authRepository.getUserProfile();
-
       emit(AuthAuthenticated(user));
-    } catch (e, st) {
-      // optional: log e/st
+    } catch (e) {
       emit(AuthUnauthenticated());
     }
   }
@@ -48,10 +42,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
+
     try {
+      // First, save remember me preferences BEFORE login attempt
+      await storageRepository.saveRememberMe(event.rememberMe);
+
+      if (event.rememberMe) {
+        // Save credentials if remember me is checked
+        await storageRepository.saveUserEmail(event.identifier);
+        await storageRepository.saveUserPassword(event.password);
+      } else {
+        // Clear saved credentials if remember me is unchecked
+        await storageRepository.clearRememberMeData();
+      }
+
+      // Attempt login
       final user = await authRepository.login(event.identifier, event.password);
+
       emit(AuthAuthenticated(user));
     } catch (e) {
+      // On login failure, clear remember me data for security
+      await storageRepository.clearRememberMeData();
       emit(AuthError(e.toString()));
       emit(AuthUnauthenticated());
     }

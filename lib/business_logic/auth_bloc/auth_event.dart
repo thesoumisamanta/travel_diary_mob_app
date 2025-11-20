@@ -12,11 +12,16 @@ class AuthCheckRequested extends AuthEvent {}
 class AuthLoginRequested extends AuthEvent {
   final String identifier;
   final String password;
+  final bool rememberMe;
 
-  const AuthLoginRequested({required this.identifier, required this.password});
+  const AuthLoginRequested({
+    required this.identifier,
+    required this.password,
+    this.rememberMe = false,
+  });
 
   @override
-  List<Object?> get props => [identifier, password];
+  List<Object?> get props => [identifier, password, rememberMe];
 }
 
 class AuthRegisterRequested extends AuthEvent {

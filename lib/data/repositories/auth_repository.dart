@@ -17,13 +17,10 @@ class AuthRepository {
       final accessToken = data['access_token'] ?? data['accessToken'];
       final refreshToken = data['refresh_token'] ?? data['refreshToken'];
 
-      // Save tokens and user info
       await _storageRepository.saveAccessToken(accessToken);
       await _storageRepository.saveRefreshToken(refreshToken);
       await _storageRepository.saveUserId(user.id);
-      await _storageRepository.saveUserEmail(user.email);
 
-      // Set token in API service
       _apiService.setAccessToken(accessToken);
 
       return user;
@@ -47,7 +44,6 @@ class AuthRepository {
       await _storageRepository.saveAccessToken(accessToken);
       await _storageRepository.saveRefreshToken(refreshToken);
       await _storageRepository.saveUserId(user.id);
-      await _storageRepository.saveUserEmail(user.email);
 
       // Set token in API service
       _apiService.setAccessToken(accessToken);
@@ -62,9 +58,10 @@ class AuthRepository {
     try {
       await _apiService.logout();
     } catch (e) {
-      // Continue with logout even if API call fails
+      // Ignore API error and proceed with local logout
     } finally {
-      await _storageRepository.clearAll();
+      // Clear only session data, keep remember-me data intact
+      await _storageRepository.clearSessionOnly();
       _apiService.setAccessToken(null);
     }
   }
@@ -79,7 +76,7 @@ class AuthRepository {
   }
 
   Future<UserModel> getUserProfile() async {
-    final response = await _apiService.getUserProfile(); // call your service
+    final response = await _apiService.getUserProfile();
     if (response.success && response.data != null) {
       final user = UserModel.fromJson(response.data as Map<String, dynamic>);
       return user;

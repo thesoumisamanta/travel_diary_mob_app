@@ -56,7 +56,22 @@ class StorageRepository {
     return await _storageService.readBool('remember_me');
   }
 
-  // Clear all
+  // Clear remember me data (email, password, remember_me flag)
+  Future<void> clearRememberMeData() async {
+    await _storageService.delete('user_email');
+    await _storageService.delete('user_password');
+    await _storageService.writeBool('remember_me', false);
+  }
+
+  // Clear session only (tokens and user_id) - keeps remember me data
+  Future<void> clearSessionOnly() async {
+    await _storageService.delete('access_token');
+    await _storageService.delete('refresh_token');
+    await _storageService.delete('user_id');
+    // Note: We keep user_email, user_password, and remember_me
+  }
+
+  // Clear all data
   Future<void> clearAll() async {
     await _storageService.deleteAll();
   }
