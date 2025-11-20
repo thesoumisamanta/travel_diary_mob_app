@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:travel_diary_mob_app/business_logic/auth_bloc/auth_bloc.dart';
+import 'package:travel_diary_mob_app/business_logic/auth_bloc/auth_event.dart';
 import 'package:travel_diary_mob_app/business_logic/auth_bloc/auth_state.dart';
 import 'package:travel_diary_mob_app/core/theme/app_theme.dart';
 import 'package:travel_diary_mob_app/presentation/screens/auth/login_screen.dart';
@@ -13,6 +14,9 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Trigger check
+    context.read<AuthBloc>().add(AuthCheckRequested());
+
     return MaterialApp(
       title: 'Travel Diary',
       debugShowCheckedModeBanner: false,
@@ -29,7 +33,6 @@ class App extends StatelessWidget {
           } else if (state is AuthUnauthenticated) {
             return const LoginScreen();
           } else {
-            // default loading
             return const Scaffold(body: Center(child: LoadingWidget()));
           }
         },
@@ -37,3 +40,4 @@ class App extends StatelessWidget {
     );
   }
 }
+

@@ -1,7 +1,6 @@
 import '../services/api_service.dart';
 import '../models/user_model.dart';
 import 'storage_repository.dart';
-import '../../core/network/api_response.dart';
 
 class AuthRepository {
   final ApiService _apiService;
@@ -11,22 +10,22 @@ class AuthRepository {
 
   Future<UserModel> login(String email, String password) async {
     final response = await _apiService.login(email, password);
-    
+
     if (response.success && response.data != null) {
       final data = response.data as Map<String, dynamic>;
       final user = UserModel.fromJson(data['user']);
       final accessToken = data['access_token'] ?? data['accessToken'];
       final refreshToken = data['refresh_token'] ?? data['refreshToken'];
-      
+
       // Save tokens and user info
       await _storageRepository.saveAccessToken(accessToken);
       await _storageRepository.saveRefreshToken(refreshToken);
       await _storageRepository.saveUserId(user.id);
       await _storageRepository.saveUserEmail(user.email);
-      
+
       // Set token in API service
       _apiService.setAccessToken(accessToken);
-      
+
       return user;
     } else {
       throw Exception(response.message ?? 'Login failed');
@@ -35,22 +34,24 @@ class AuthRepository {
 
   Future<UserModel> register(Map<String, dynamic> data) async {
     final response = await _apiService.register(data);
-    
+
     if (response.success && response.data != null) {
       final responseData = response.data as Map<String, dynamic>;
       final user = UserModel.fromJson(responseData['user']);
-      final accessToken = responseData['access_token'] ?? responseData['accessToken'];
-      final refreshToken = responseData['refresh_token'] ?? responseData['refreshToken'];
-      
+      final accessToken =
+          responseData['access_token'] ?? responseData['accessToken'];
+      final refreshToken =
+          responseData['refresh_token'] ?? responseData['refreshToken'];
+
       // Save tokens and user info
       await _storageRepository.saveAccessToken(accessToken);
       await _storageRepository.saveRefreshToken(refreshToken);
       await _storageRepository.saveUserId(user.id);
       await _storageRepository.saveUserEmail(user.email);
-      
+
       // Set token in API service
       _apiService.setAccessToken(accessToken);
-      
+
       return user;
     } else {
       throw Exception(response.message ?? 'Registration failed');
@@ -77,7 +78,13 @@ class AuthRepository {
     return false;
   }
 
-  Future<String?> getCurrentUserId() async {
-    return await _storageRepository.getUserId();
+  Future<UserModel> getUserProfile() async {
+    final response = await _apiService.getUserProfile(); // call your service
+    if (response.success && response.data != null) {
+      final user = UserModel.fromJson(response.data as Map<String, dynamic>);
+      return user;
+    } else {
+      throw Exception(response.message ?? 'Failed to fetch user profile');
+    }
   }
 }

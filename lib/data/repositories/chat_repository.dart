@@ -1,6 +1,5 @@
 import '../services/api_service.dart';
 import '../models/chat_model.dart';
-import '../../core/network/api_response.dart';
 
 class ChatRepository {
   final ApiService _apiService;

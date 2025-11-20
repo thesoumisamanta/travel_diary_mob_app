@@ -23,7 +23,6 @@ void main() async {
 
   // Initialize services
   final storageService = StorageService();
-  await storageService.init();
 
   final apiService = ApiService();
 

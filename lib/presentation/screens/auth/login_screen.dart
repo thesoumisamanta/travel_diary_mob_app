@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../business_logic/auth_bloc/auth_bloc.dart';
 import '../../../business_logic/auth_bloc/auth_event.dart';
 import '../../../business_logic/auth_bloc/auth_state.dart';
-import '../../../core/utils/validators.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -20,12 +19,14 @@ class _LoginScreenState extends State<LoginScreen> {
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
   final _formKey = GlobalKey<FormState>();
+  bool _rememberMe = false;
 
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController();
     _passwordController = TextEditingController();
+    _loadRememberedCredentials();
   }
 
   @override
@@ -35,26 +36,38 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
-      final input = _emailController.text.trim();
+  void _loadRememberedCredentials() async {
+    final storage = context.read<AuthBloc>().storageRepository;
+    final rememberMe = await storage.getRememberMe() ?? false;
+    if (rememberMe) {
+      final email = await storage.getUserEmail();
+      final password = await storage.getUserPassword();
+      setState(() {
+        _rememberMe = true;
+        _emailController.text = email ?? '';
+        _passwordController.text = password ?? '';
+      });
+    }
+  }
 
-      String? email;
-      String? username;
+  void _handleLogin() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      return;
+    }
 
-      // Check if input contains '@' → it's an email
-      if (input.contains('@')) {
-        email = input;
-      } else {
-        username = input;
-      }
+    context.read<AuthBloc>().add(
+      AuthLoginRequested(
+        identifier: _emailController.text.trim(),
+        password: _passwordController.text,
+      ),
+    );
 
-      context.read<AuthBloc>().add(
-        AuthLoginRequested(
-          identifier: _emailController.text.trim(),
-          password: _passwordController.text,
-        ),
-      );
+    // Save credentials if remember me checked
+    final storage = context.read<AuthBloc>().storageRepository;
+    await storage.saveRememberMe(_rememberMe);
+    if (_rememberMe) {
+      await storage.saveUserEmail(_emailController.text.trim());
+      await storage.saveUserPassword(_passwordController.text);
     }
   }
 
@@ -121,6 +134,32 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _rememberMe,
+                            onChanged: (value) {
+                              setState(() {
+                                _rememberMe = value ?? false;
+                              });
+                            },
+                          ),
+                          const Text('Remember Me'),
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/forgot-password');
+                        },
+                        child: const Text('Forgot Password?'),
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 32),
                   BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {

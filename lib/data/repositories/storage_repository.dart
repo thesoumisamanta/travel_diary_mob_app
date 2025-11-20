@@ -1,79 +1,63 @@
 import '../services/storage_service.dart';
-import '../../core/constants/storage_constants.dart';
 
 class StorageRepository {
   final StorageService _storageService;
 
   StorageRepository(this._storageService);
 
-  // Token Management
+  // Tokens
   Future<void> saveAccessToken(String token) async {
-    await _storageService.writeSecure(StorageConstants.accessToken, token);
+    await _storageService.write('access_token', token);
   }
 
   Future<String?> getAccessToken() async {
-    return await _storageService.readSecure(StorageConstants.accessToken);
+    return await _storageService.read('access_token');
   }
 
   Future<void> saveRefreshToken(String token) async {
-    await _storageService.writeSecure(StorageConstants.refreshToken, token);
+    await _storageService.write('refresh_token', token);
   }
 
   Future<String?> getRefreshToken() async {
-    return await _storageService.readSecure(StorageConstants.refreshToken);
+    return await _storageService.read('refresh_token');
   }
 
-  Future<void> deleteTokens() async {
-    await _storageService.deleteSecure(StorageConstants.accessToken);
-    await _storageService.deleteSecure(StorageConstants.refreshToken);
-  }
-
-  // User ID
+  // User
   Future<void> saveUserId(String userId) async {
-    await _storageService.writeSecure(StorageConstants.userId, userId);
+    await _storageService.write('user_id', userId);
   }
 
   Future<String?> getUserId() async {
-    return await _storageService.readSecure(StorageConstants.userId);
+    return await _storageService.read('user_id');
   }
 
-  // User Email
   Future<void> saveUserEmail(String email) async {
-    await _storageService.writeSecure(StorageConstants.userEmail, email);
+    await _storageService.write('user_email', email);
   }
 
   Future<String?> getUserEmail() async {
-    return await _storageService.readSecure(StorageConstants.userEmail);
+    return await _storageService.read('user_email');
   }
 
-  // App Settings
-  Future<void> setFirstTime(bool value) async {
-    await _storageService.setBool(StorageConstants.isFirstTime, value);
+  Future<void> saveUserPassword(String password) async {
+    await _storageService.write('user_password', password);
   }
 
-  bool isFirstTime() {
-    return _storageService.getBool(StorageConstants.isFirstTime) ?? true;
+  Future<String?> getUserPassword() async {
+    return await _storageService.read('user_password');
   }
 
-  Future<void> setDarkMode(bool value) async {
-    await _storageService.setBool(StorageConstants.isDarkMode, value);
+  // Remember Me
+  Future<void> saveRememberMe(bool value) async {
+    await _storageService.writeBool('remember_me', value);
   }
 
-  bool isDarkMode() {
-    return _storageService.getBool(StorageConstants.isDarkMode) ?? false;
+  Future<bool?> getRememberMe() async {
+    return await _storageService.readBool('remember_me');
   }
 
-  Future<void> setNotificationsEnabled(bool value) async {
-    await _storageService.setBool(StorageConstants.notificationsEnabled, value);
-  }
-
-  bool isNotificationsEnabled() {
-    return _storageService.getBool(StorageConstants.notificationsEnabled) ?? true;
-  }
-
-  // Clear All Data
+  // Clear all
   Future<void> clearAll() async {
-    await _storageService.deleteAllSecure();
-    await _storageService.clear();
+    await _storageService.deleteAll();
   }
 }

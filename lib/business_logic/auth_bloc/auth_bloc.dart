@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:travel_diary_mob_app/data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/storage_repository.dart';
 import 'auth_event.dart';
@@ -8,10 +9,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository authRepository;
   final StorageRepository storageRepository;
 
-  AuthBloc({
-    required this.authRepository,
-    required this.storageRepository,
-  }) : super(AuthInitial()) {
+  AuthBloc({required this.authRepository, required this.storageRepository})
+    : super(AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<AuthLoginRequested>(_onAuthLoginRequested);
     on<AuthRegisterRequested>(_onAuthRegisterRequested);
@@ -23,22 +22,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
+
     try {
-      final isAuthenticated = await authRepository.isAuthenticated();
-      if (isAuthenticated) {
-        final userId = await authRepository.getCurrentUserId();
-        if (userId != null) {
-          // In a real app, you would fetch the user profile here
-          // For now, we'll emit authenticated without user data
-          // The app will load user data separately
-          emit(AuthUnauthenticated()); // Temporary - should load user
-        } else {
-          emit(AuthUnauthenticated());
-        }
-      } else {
+      // Use the public method on AuthRepository to see if token exists
+      final authenticated = await authRepository.isAuthenticated();
+
+      if (!authenticated) {
         emit(AuthUnauthenticated());
+        return;
       }
-    } catch (e) {
+
+      // authRepository.isAuthenticated() already set the token on the ApiService.
+      // Now fetch the full user profile via the repository
+      final user = await authRepository.getUserProfile();
+
+      emit(AuthAuthenticated(user));
+    } catch (e, st) {
+      // optional: log e/st
       emit(AuthUnauthenticated());
     }
   }

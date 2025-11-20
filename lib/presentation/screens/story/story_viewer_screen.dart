@@ -4,18 +4,17 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../business_logic/app_bloc/app_bloc.dart';
 import '../../../business_logic/app_bloc/app_event.dart';
 import '../../../data/models/story_model.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/constants/app_constants.dart';
+
 
 class StoryViewerScreen extends StatefulWidget {
   final List<StoryModel> stories;
   final int initialIndex;
 
   const StoryViewerScreen({
-    Key? key,
+    super.key,
     required this.stories,
     this.initialIndex = 0,
-  }) : super(key: key);
+  });
 
   @override
   State<StoryViewerScreen> createState() => _StoryViewerScreenState();
