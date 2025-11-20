@@ -1,14 +1,13 @@
 import '../services/api_service.dart';
 import '../models/user_model.dart';
-import '../../core/network/api_response.dart';
 
 class UserRepository {
   final ApiService _apiService;
 
   UserRepository(this._apiService);
 
-  Future<UserModel> getUserProfile(String userId) async {
-    final response = await _apiService.getUserProfile(userId);
+  Future<UserModel> getUserProfile() async {
+    final response = await _apiService.getUserProfile();
     
     if (response.success && response.data != null) {
       return UserModel.fromJson(response.data);

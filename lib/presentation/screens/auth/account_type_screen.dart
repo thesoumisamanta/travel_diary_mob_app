@@ -3,7 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../widgets/custom_button.dart';
 
 class AccountTypeScreen extends StatefulWidget {
-  const AccountTypeScreen({Key? key}) : super(key: key);
+  const AccountTypeScreen({super.key});
 
   @override
   State<AccountTypeScreen> createState() => _AccountTypeScreenState();

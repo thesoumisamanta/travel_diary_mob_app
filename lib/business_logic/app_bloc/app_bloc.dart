@@ -61,7 +61,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   ) async {
     emit(state.copyWith(isLoadingUser: true, userError: null));
     try {
-      final user = await userRepository.getUserProfile(event.userId);
+      final user = await userRepository.getUserProfile();
       emit(state.copyWith(
         selectedUser: user,
         isLoadingUser: false,

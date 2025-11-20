@@ -31,8 +31,8 @@ class ApiService {
   }
 
   // User APIs
-  Future<ApiResponse> getUserProfile(String userId) async {
-    final response = await _apiClient.get('${ApiConstants.users}/$userId');
+  Future<ApiResponse> getUserProfile() async {
+    final response = await _apiClient.get(ApiConstants.userProfile);
     return ApiResponse.fromJson(response.data, null);
   }
 

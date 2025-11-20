@@ -9,7 +9,7 @@ class ApiConstants {
   
   // User Endpoints
   static const String users = '/users';
-  static const String userProfile = '/users/profile';
+  static const String userProfile = '/users/current';
   static const String updateProfile = '/users/update';
   static const String followUser = '/users/follow';
   static const String unfollowUser = '/users/unfollow';
