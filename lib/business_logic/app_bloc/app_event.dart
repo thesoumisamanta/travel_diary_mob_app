@@ -112,6 +112,16 @@ class LikePost extends AppEvent {
   List<Object?> get props => [postId, isLiked];
 }
 
+// Add this event class
+class DislikePost extends AppEvent {
+  final String postId;
+
+  const DislikePost(this.postId);
+
+  @override
+  List<Object?> get props => [postId];
+}
+
 // Comment Events
 class LoadComments extends AppEvent {
   final String postId;

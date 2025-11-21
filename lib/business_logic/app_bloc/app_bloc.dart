@@ -30,6 +30,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     on<CreatePost>(_onCreatePost);
     // on<DeletePost>(_onDeletePost);
     on<LikePost>(_onLikePost);
+    on<DislikePost>(_onDislikePost);
 
     // Comment Events
     on<LoadComments>(_onLoadComments);
@@ -59,12 +60,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     LoadUserProfile event,
     Emitter<AppState> emit,
   ) async {
-    print('🔄 Loading user profile...');
     emit(state.copyWith(isLoadingUser: true, userError: null));
 
     try {
       final user = await userRepository.getUserProfile();
-      print('✅ User loaded: ${user.username}, id: ${user.id}');
 
       emit(
         state.copyWith(
@@ -74,11 +73,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           userError: null,
         ),
       );
-
-      print('✅ State emitted - currentUser: ${state.currentUser?.username}');
-    } catch (e, stackTrace) {
-      print('❌ ERROR loading user profile: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       emit(
         state.copyWith(
           isLoadingUser: false,
@@ -265,45 +260,190 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   // }
 
   Future<void> _onLikePost(LikePost event, Emitter<AppState> emit) async {
-    try {
-      if (event.isLiked) {
-        await postRepository.unlikePost(event.postId);
-      } else {
-        await postRepository.likePost(event.postId);
-      }
+    final originalFeedPosts = List<PostModel>.from(state.feedPosts);
+    final originalSelectedPost = state.selectedPost;
 
-      // Update post in feed
-      final updatedFeedPosts = state.feedPosts.map((post) {
+    final currentPost = state.feedPosts.firstWhere(
+      (p) => p.id == event.postId,
+      orElse: () => state.selectedPost!,
+    );
+
+    final wasLiked = currentPost.isLiked;
+    final wasDisliked = currentPost.isDisliked;
+
+    final optimisticFeedPosts = state.feedPosts.map((post) {
+      if (post.id == event.postId) {
+        final newIsLiked = !wasLiked;
+        return post.copyWith(
+          isLiked: newIsLiked,
+          isDisliked: false,
+          likesCount: newIsLiked ? post.likesCount + 1 : post.likesCount - 1,
+          dislikesCount: wasDisliked
+              ? post.dislikesCount - 1
+              : post.dislikesCount,
+        );
+      }
+      return post;
+    }).toList();
+
+    PostModel? optimisticSelectedPost = state.selectedPost;
+    if (state.selectedPost?.id == event.postId) {
+      final newIsLiked = !wasLiked;
+      optimisticSelectedPost = state.selectedPost?.copyWith(
+        isLiked: newIsLiked,
+        isDisliked: false,
+        likesCount: newIsLiked
+            ? (state.selectedPost?.likesCount ?? 0) + 1
+            : (state.selectedPost?.likesCount ?? 1) - 1,
+        dislikesCount: wasDisliked
+            ? (state.selectedPost?.dislikesCount ?? 1) - 1
+            : (state.selectedPost?.dislikesCount ?? 0),
+      );
+    }
+
+    emit(
+      state.copyWith(
+        feedPosts: optimisticFeedPosts,
+        selectedPost: optimisticSelectedPost,
+      ),
+    );
+
+    try {
+      final backendData = await postRepository.likePost(event.postId);
+
+      final confirmedFeedPosts = state.feedPosts.map((post) {
         if (post.id == event.postId) {
           return post.copyWith(
-            isLiked: !event.isLiked,
-            likesCount: event.isLiked
-                ? post.likesCount - 1
-                : post.likesCount + 1,
+            isLiked: backendData['isLiked'] ?? false,
+            isDisliked: backendData['isDisliked'] ?? false,
+            likesCount: backendData['likesCount'] ?? 0,
+            dislikesCount: backendData['dislikesCount'] ?? 0,
           );
         }
         return post;
       }).toList();
 
-      // Update selected post if it matches
-      PostModel? updatedSelectedPost = state.selectedPost;
+      PostModel? confirmedSelectedPost = state.selectedPost;
       if (state.selectedPost?.id == event.postId) {
-        updatedSelectedPost = state.selectedPost?.copyWith(
-          isLiked: !event.isLiked,
-          likesCount: event.isLiked
-              ? (state.selectedPost?.likesCount ?? 1) - 1
-              : (state.selectedPost?.likesCount ?? 0) + 1,
+        confirmedSelectedPost = state.selectedPost?.copyWith(
+          isLiked: backendData['isLiked'] ?? false,
+          isDisliked: backendData['isDisliked'] ?? false,
+          likesCount: backendData['likesCount'] ?? 0,
+          dislikesCount: backendData['dislikesCount'] ?? 0,
         );
       }
 
       emit(
         state.copyWith(
-          feedPosts: updatedFeedPosts,
-          selectedPost: updatedSelectedPost,
+          feedPosts: confirmedFeedPosts,
+          selectedPost: confirmedSelectedPost,
         ),
       );
     } catch (e) {
-      emit(state.copyWith(postError: e.toString()));
+
+      emit(
+        state.copyWith(
+          feedPosts: originalFeedPosts,
+          selectedPost: originalSelectedPost,
+          postError: e.toString(),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onDislikePost(DislikePost event, Emitter<AppState> emit) async {
+
+    final originalFeedPosts = List<PostModel>.from(state.feedPosts);
+    final originalSelectedPost = state.selectedPost;
+
+    final currentPost = state.feedPosts.firstWhere(
+      (p) => p.id == event.postId,
+      orElse: () => state.selectedPost!,
+    );
+
+    final wasLiked = currentPost.isLiked;
+    final wasDisliked = currentPost.isDisliked;
+
+
+    final optimisticFeedPosts = state.feedPosts.map((post) {
+      if (post.id == event.postId) {
+        final newIsDisliked = !wasDisliked;
+        return post.copyWith(
+          isDisliked: newIsDisliked,
+          isLiked: false,
+          dislikesCount: newIsDisliked
+              ? post.dislikesCount + 1
+              : post.dislikesCount - 1,
+          likesCount: wasLiked ? post.likesCount - 1 : post.likesCount,
+        );
+      }
+      return post;
+    }).toList();
+
+    PostModel? optimisticSelectedPost = state.selectedPost;
+    if (state.selectedPost?.id == event.postId) {
+      final newIsDisliked = !wasDisliked;
+      optimisticSelectedPost = state.selectedPost?.copyWith(
+        isDisliked: newIsDisliked,
+        isLiked: false,
+        dislikesCount: newIsDisliked
+            ? (state.selectedPost?.dislikesCount ?? 0) + 1
+            : (state.selectedPost?.dislikesCount ?? 1) - 1,
+        likesCount: wasLiked
+            ? (state.selectedPost?.likesCount ?? 1) - 1
+            : (state.selectedPost?.likesCount ?? 0),
+      );
+    }
+
+    emit(
+      state.copyWith(
+        feedPosts: optimisticFeedPosts,
+        selectedPost: optimisticSelectedPost,
+      ),
+    );
+
+    try {
+      // Call API and get backend response
+      final backendData = await postRepository.dislikePost(event.postId);
+
+
+      final confirmedFeedPosts = state.feedPosts.map((post) {
+        if (post.id == event.postId) {
+          return post.copyWith(
+            isLiked: backendData['isLiked'] ?? false,
+            isDisliked: backendData['isDisliked'] ?? false,
+            likesCount: backendData['likesCount'] ?? 0,
+            dislikesCount: backendData['dislikesCount'] ?? 0,
+          );
+        }
+        return post;
+      }).toList();
+
+      PostModel? confirmedSelectedPost = state.selectedPost;
+      if (state.selectedPost?.id == event.postId) {
+        confirmedSelectedPost = state.selectedPost?.copyWith(
+          isLiked: backendData['isLiked'] ?? false,
+          isDisliked: backendData['isDisliked'] ?? false,
+          likesCount: backendData['likesCount'] ?? 0,
+          dislikesCount: backendData['dislikesCount'] ?? 0,
+        );
+      }
+
+      emit(
+        state.copyWith(
+          feedPosts: confirmedFeedPosts,
+          selectedPost: confirmedSelectedPost,
+        ),
+      );
+    } catch (e) {
+
+      emit(
+        state.copyWith(
+          feedPosts: originalFeedPosts,
+          selectedPost: originalSelectedPost,
+          postError: e.toString(),
+        ),
+      );
     }
   }
 

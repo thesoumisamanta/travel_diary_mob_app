@@ -24,16 +24,12 @@ class AuthRepository {
         await _storageRepository.saveRefreshToken(refreshToken);
         _apiService.setAccessToken(accessToken);
         _apiService.setRefreshToken(refreshToken);
-        print('✅ Tokens refreshed and saved');
       },
       
-      // Handle refresh failure (logout user)
       onRefreshFailed: () async {
-        print('❌ Token refresh failed - logging out user');
         await _storageRepository.clearSessionOnly();
         _apiService.setAccessToken(null);
         _apiService.setRefreshToken(null);
-        // Note: You might want to emit an event to navigate to login screen
       },
     );
   }

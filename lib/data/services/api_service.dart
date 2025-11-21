@@ -182,18 +182,92 @@ class ApiService {
   //   return ApiResponse.fromJson(response.data, null);
   // }
 
+  // Replace your likePost and dislikePost methods in api_service.dart
+
   Future<ApiResponse> likePost(String postId) async {
-    final response = await _apiClient.post(
-      '${ApiConstants.likePost}/$postId/like',
-    );
-    return ApiResponse.fromJson(response.data, null);
+    try {
+      final response = await _apiClient.post(
+        '${ApiConstants.likePost}/$postId/like',
+      );
+
+      final data = response.data;
+
+      // ✅ If response contains 'isLiked' field, it's a successful response
+      // Your backend returns: { likes, dislikes, isLiked, isDisliked }
+      if (data != null && data is Map<String, dynamic>) {
+        // Check if it's the expected success response format
+        if (data.containsKey('isLiked') || data.containsKey('likes')) {
+          return ApiResponse(
+            success: true,
+            data: data,
+            message: 'Post liked successfully',
+            statusCode: response.statusCode,
+          );
+        }
+
+        // Check if backend returned an error with 'success: false'
+        if (data.containsKey('success') && data['success'] == false) {
+          return ApiResponse(
+            success: false,
+            message: data['message'] ?? 'Failed to like post',
+            statusCode: response.statusCode,
+          );
+        }
+      }
+
+      // Fallback: if we got a 2xx status, consider it success
+      return ApiResponse(
+        success:
+            response.statusCode != null &&
+            response.statusCode! >= 200 &&
+            response.statusCode! < 300,
+        data: data,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      rethrow;
+    }
   }
 
-  Future<ApiResponse> unlikePost(String postId) async {
-    final response = await _apiClient.post(
-      '${ApiConstants.dislikePost}/$postId/like',
-    );
-    return ApiResponse.fromJson(response.data, null);
+  Future<ApiResponse> dislikePost(String postId) async {
+    try {
+      final response = await _apiClient.post(
+        '${ApiConstants.dislikePost}/$postId/dislike',
+      );
+
+      final data = response.data;
+
+      // ✅ If response contains 'isDisliked' field, it's a successful response
+      if (data != null && data is Map<String, dynamic>) {
+        if (data.containsKey('isDisliked') || data.containsKey('dislikes')) {
+          return ApiResponse(
+            success: true,
+            data: data,
+            message: 'Post disliked successfully',
+            statusCode: response.statusCode,
+          );
+        }
+
+        if (data.containsKey('success') && data['success'] == false) {
+          return ApiResponse(
+            success: false,
+            message: data['message'] ?? 'Failed to dislike post',
+            statusCode: response.statusCode,
+          );
+        }
+      }
+
+      return ApiResponse(
+        success:
+            response.statusCode != null &&
+            response.statusCode! >= 200 &&
+            response.statusCode! < 300,
+        data: data,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<ApiResponse> getPostComments(String postId, int page) async {

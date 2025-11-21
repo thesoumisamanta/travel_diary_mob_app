@@ -39,11 +39,14 @@ class MediaItem {
   }
 
   static PostType _getPostType(String? type) {
-    switch (type) {
+    switch (type?.toLowerCase()) {
       case 'video':
         return PostType.video;
       case 'short':
         return PostType.short;
+      case 'image':
+      case 'images': // ✅ Handle both singular and plural
+        return PostType.image;
       default:
         return PostType.image;
     }
@@ -59,10 +62,11 @@ class PostModel extends Equatable {
   final String? location;
   final List<String> tags;
   final int likesCount;
+  final int dislikesCount;
   final int commentsCount;
   final int sharesCount;
-  final int downloadsCount;
   final bool isLiked;
+  final bool isDisliked;
   final bool isSaved;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -76,38 +80,44 @@ class PostModel extends Equatable {
     this.location,
     this.tags = const [],
     this.likesCount = 0,
+    this.dislikesCount = 0,
     this.commentsCount = 0,
     this.sharesCount = 0,
-    this.downloadsCount = 0,
     this.isLiked = false,
+    this.isDisliked = false,
     this.isSaved = false,
     required this.createdAt,
     required this.updatedAt,
   });
 
+
+
   factory PostModel.fromJson(Map<String, dynamic> json) {
-    return PostModel(
+
+
+    final post = PostModel(
       id: json['_id'] ?? json['id'] ?? '',
-      // ✅ CHANGE: Use 'uploader' instead of 'author' to match backend
       author: UserModel.fromJson(json['uploader'] ?? json['author'] ?? {}),
-      // ✅ CHANGE: Backend uses 'description' not 'caption'
       caption: json['description'] ?? json['caption'],
-      // ✅ CHANGE: Build media array from backend structure
       media: _buildMediaFromBackend(json),
-      // ✅ CHANGE: Backend uses 'postType' not 'type'
       type: MediaItem._getPostType(json['postType'] ?? json['type']),
       location: json['location'],
       tags:
           (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
           [],
-      // ✅ CHANGE: Backend uses 'likes' array, get length
-      likesCount: json['likes'] is List
-          ? (json['likes'] as List).length
-          : (json['likes_count'] ?? json['likesCount'] ?? 0),
+
+      likesCount:
+          json['likesCount'] ??
+          (json['likes'] is List ? (json['likes'] as List).length : 0),
+      dislikesCount:
+          json['dislikesCount'] ??
+          (json['dislikes'] is List ? (json['dislikes'] as List).length : 0),
+
+      isLiked: json['isLiked'] ?? false,
+      isDisliked: json['isDisliked'] ?? false,
+
       commentsCount: json['comments_count'] ?? json['commentsCount'] ?? 0,
       sharesCount: json['shares_count'] ?? json['sharesCount'] ?? 0,
-      downloadsCount: json['downloads_count'] ?? json['downloadsCount'] ?? 0,
-      isLiked: json['is_liked'] ?? json['isLiked'] ?? false,
       isSaved: json['is_saved'] ?? json['isSaved'] ?? false,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
@@ -120,11 +130,16 @@ class PostModel extends Equatable {
           ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
     );
+
+
+
+    return post;
   }
 
-  // Helper method to build media array from backend structure
   static List<MediaItem> _buildMediaFromBackend(Map<String, dynamic> json) {
-    final postType = json['postType'] ?? json['type'];
+    final postType = (json['postType'] ?? json['type'])
+        ?.toString()
+        .toLowerCase();
 
     if (postType == 'video' && json['videoUrl'] != null) {
       return [
@@ -135,18 +150,24 @@ class PostModel extends Equatable {
           duration: json['duration']?.toDouble(),
         ),
       ];
-    } else if (postType == 'images' && json['images'] != null) {
+    }
+    else if ((postType == 'images' || postType == 'image') &&
+        json['images'] != null) {
+
       return (json['images'] as List<dynamic>)
-          .map(
-            (img) => MediaItem(
-              url: img['url'] ?? '',
+          .map((img) {
+            // Backend images array contains objects with 'url' and 'caption'
+            final imageUrl = img is Map ? (img['url'] ?? '') : img.toString();
+            return MediaItem(
+              url: imageUrl,
               thumbnail: null,
               type: PostType.image,
-            ),
-          )
+            );
+          })
+          .where((item) => item.url.isNotEmpty) 
           .toList();
-    } else if (json['media'] != null) {
-      // Fallback to 'media' field if present
+    }
+    else if (json['media'] != null && json['media'] is List) {
       return (json['media'] as List<dynamic>)
           .map((e) => MediaItem.fromJson(e))
           .toList();
@@ -169,10 +190,11 @@ class PostModel extends Equatable {
       'location': location,
       'tags': tags,
       'likes_count': likesCount,
+      'dislikes_count': dislikesCount,
       'comments_count': commentsCount,
       'shares_count': sharesCount,
-      'downloads_count': downloadsCount,
       'is_liked': isLiked,
+      'is_disliked': isDisliked,
       'is_saved': isSaved,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -188,10 +210,11 @@ class PostModel extends Equatable {
     String? location,
     List<String>? tags,
     int? likesCount,
+    int? dislikesCount,
     int? commentsCount,
     int? sharesCount,
-    int? downloadsCount,
     bool? isLiked,
+    bool? isDisliked,
     bool? isSaved,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -205,10 +228,11 @@ class PostModel extends Equatable {
       location: location ?? this.location,
       tags: tags ?? this.tags,
       likesCount: likesCount ?? this.likesCount,
+      dislikesCount: dislikesCount ?? this.dislikesCount,
       commentsCount: commentsCount ?? this.commentsCount,
       sharesCount: sharesCount ?? this.sharesCount,
-      downloadsCount: downloadsCount ?? this.downloadsCount,
       isLiked: isLiked ?? this.isLiked,
+      isDisliked: isDisliked ?? this.isDisliked,
       isSaved: isSaved ?? this.isSaved,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -225,10 +249,11 @@ class PostModel extends Equatable {
     location,
     tags,
     likesCount,
+    dislikesCount,
     commentsCount,
     sharesCount,
-    downloadsCount,
     isLiked,
+    isDisliked,
     isSaved,
     createdAt,
     updatedAt,

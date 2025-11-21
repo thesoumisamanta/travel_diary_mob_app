@@ -79,7 +79,6 @@ class ApiClient {
     _refreshToken = token;
   }
 
-  // Set callbacks for token management
   void setTokenCallbacks({
     Future<String?> Function()? getRefreshToken,
     Future<void> Function(String accessToken, String refreshToken)? onTokensRefreshed,
@@ -90,23 +89,18 @@ class ApiClient {
     _onRefreshFailed = onRefreshFailed;
   }
 
-  // Refresh access token using refresh token
   Future<bool> _refreshAccessToken() async {
     try {
-      print('🔄 Attempting to refresh access token...');
       
-      // Get refresh token from callback
       String? refreshToken = _refreshToken;
       if (_getRefreshToken != null) {
         refreshToken = await _getRefreshToken!();
       }
 
       if (refreshToken == null) {
-        print('❌ No refresh token available');
         return false;
       }
 
-      // Call refresh token endpoint
       final response = await _dio.post(
         ApiConstants.refreshToken,
         data: {'refresh_token': refreshToken},
@@ -130,15 +124,12 @@ class ApiClient {
             await _onTokensRefreshed!(newAccessToken, newRefreshToken);
           }
           
-          print('✅ Token refreshed successfully');
           return true;
         }
       }
 
-      print('❌ Token refresh failed - invalid response');
       return false;
     } catch (e) {
-      print('❌ Token refresh error: $e');
       return false;
     }
   }

@@ -12,40 +12,27 @@ class PostRepository {
   // Feed & Posts
   Future<List<PostModel>> getFeed(int page) async {
     try {
-      print('🔄 Loading feed, page: $page');
       final response = await _apiService.getPostFeed(page);
-
-      print('Feed API Response - Success: ${response.success}');
-      print('Feed API Response - Data: ${response.data}');
 
       if (response.success && response.data != null) {
         var feedData = response.data;
 
-        // Check if response.data has a nested 'data' field (same issue as user profile)
         if (feedData is Map<String, dynamic> && feedData.containsKey('data')) {
           feedData = feedData['data'];
         }
 
-        print('Feed data after extraction: $feedData');
-        print('Feed data type: ${feedData.runtimeType}');
-
         if (feedData is List) {
-          print('✅ Feed contains ${feedData.length} posts');
           final posts = feedData
               .map((json) => PostModel.fromJson(json as Map<String, dynamic>))
               .toList();
-          print('✅ Parsed ${posts.length} posts successfully');
           return posts;
         } else {
           return [];
         }
       } else {
-        print('❌ Feed API failed: ${response.message}');
         throw Exception(response.message ?? 'Failed to load feed');
       }
-    } catch (e, stackTrace) {
-      print('❌ ERROR in getFeed: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       rethrow;
     }
   }
@@ -99,19 +86,64 @@ class PostRepository {
   //   }
   // }
 
-  Future<void> likePost(String postId) async {
-    final response = await _apiService.likePost(postId);
+  Future<Map<String, dynamic>> likePost(String postId) async {
+    try {
+      final response = await _apiService.likePost(postId);
 
-    if (!response.success) {
-      throw Exception(response.message ?? 'Failed to like post');
+      if (!response.success) {
+        throw Exception(response.message ?? 'Failed to like post');
+      }
+
+      // ✅ Return the updated like/dislike state from backend
+      // Backend returns: { likes, dislikes, isLiked, isDisliked }
+      if (response.data != null && response.data is Map<String, dynamic>) {
+        return {
+          'likesCount': response.data['likes'] ?? 0,
+          'dislikesCount': response.data['dislikes'] ?? 0,
+          'isLiked': response.data['isLiked'] ?? false,
+          'isDisliked': response.data['isDisliked'] ?? false,
+        };
+      }
+
+      // Fallback
+      return {
+        'likesCount': 0,
+        'dislikesCount': 0,
+        'isLiked': false,
+        'isDisliked': false,
+      };
+    } catch (e) {
+      rethrow;
     }
   }
 
-  Future<void> unlikePost(String postId) async {
-    final response = await _apiService.unlikePost(postId);
+  Future<Map<String, dynamic>> dislikePost(String postId) async {
+    try {
+      final response = await _apiService.dislikePost(postId);
 
-    if (!response.success) {
-      throw Exception(response.message ?? 'Failed to unlike post');
+      if (!response.success) {
+        throw Exception(response.message ?? 'Failed to dislike post');
+      }
+
+      // ✅ Return the updated like/dislike state from backend
+      if (response.data != null && response.data is Map<String, dynamic>) {
+        return {
+          'likesCount': response.data['likes'] ?? 0,
+          'dislikesCount': response.data['dislikes'] ?? 0,
+          'isLiked': response.data['isLiked'] ?? false,
+          'isDisliked': response.data['isDisliked'] ?? false,
+        };
+      }
+
+      // Fallback
+      return {
+        'likesCount': 0,
+        'dislikesCount': 0,
+        'isLiked': false,
+        'isDisliked': false,
+      };
+    } catch (e) {
+      rethrow;
     }
   }
 

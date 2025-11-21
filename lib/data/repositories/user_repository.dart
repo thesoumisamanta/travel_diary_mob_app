@@ -10,8 +10,6 @@ class UserRepository {
     try {
       final response = await _apiService.getUserProfile();
 
-      print('API Response - Success: ${response.success}');
-      print('API Response - Data: ${response.data}');
 
       if (response.success && response.data != null) {
         var userData = response.data;
@@ -21,18 +19,14 @@ class UserRepository {
           userData = userData['data'];
         }
 
-        print('User Data after extraction: $userData');
 
-        // Try to parse and catch any errors
         final user = UserModel.fromJson(userData as Map<String, dynamic>);
-        print('✅ UserModel created successfully: ${user.username}');
         return user;
       } else {
         throw Exception(response.message ?? 'Failed to load user profile');
       }
-    } catch (e, stackTrace) {
-      print('❌ ERROR in getUserProfile: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
+
       rethrow;
     }
   }

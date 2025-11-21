@@ -1,4 +1,3 @@
-import 'package:travel_diary_mob_app/data/models/video.models.dart';
 
 import 'post_model.dart';
 
@@ -23,7 +22,6 @@ class UserModel {
   final String? location;
   final DateTime createdAt;
   final List<PostModel> posts;
-  final List<VideoModel> videos;
 
   UserModel({
     required this.id,
@@ -45,14 +43,12 @@ class UserModel {
     this.location,
     required this.createdAt,
     this.posts = const [],
-    this.videos = const [],
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['_id'] ?? json['id'] ?? '',
       username: json['username'] ?? '',
-      // ✅ CHANGE: Email might not be present in populated user objects
       email: json['email'] ?? 'no-email@placeholder.com',
       fullName: json['fullName'] ?? json['full_name'] ?? '',
       profilePicture: json['avatar'] ?? json['profile_picture'],
@@ -75,9 +71,7 @@ class UserModel {
       posts: json['posts'] != null
           ? (json['posts'] as List).map((p) => PostModel.fromJson(p)).toList()
           : [],
-      videos: json['videos'] != null
-          ? (json['videos'] as List).map((v) => VideoModel.fromJson(v)).toList()
-          : [],
+      
     );
   }
 
@@ -113,7 +107,6 @@ class UserModel {
       'is_following': isFollowing,
       'created_at': createdAt.toIso8601String(),
       'posts': posts.map((p) => p.toJson()).toList(),
-      'videos': videos.map((v) => v.toJson()).toList(),
     };
   }
 
@@ -134,7 +127,6 @@ class UserModel {
     bool? isFollowing,
     DateTime? createdAt,
     List<PostModel>? posts,
-    List<VideoModel>? videos,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -153,7 +145,6 @@ class UserModel {
       isFollowing: isFollowing ?? this.isFollowing,
       createdAt: createdAt ?? this.createdAt,
       posts: posts ?? this.posts,
-      videos: videos ?? this.videos,
     );
   }
 }

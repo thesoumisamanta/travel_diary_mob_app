@@ -28,8 +28,8 @@ class ApiConstants {
   static const String allPosts = '/posts/list';
   static const String getFeed = '/posts/feed/following'; 
   static const String userPost = '/posts/user'; // + /:userId
-  static const String likePost = '/posts/:id/like'; // + /:postId
-  static const String dislikePost = '/posts/:id/dislike'; // + /:postId
+  static const String likePost = '/posts'; // + /:postId/like
+  static const String dislikePost = '/posts'; // + /:postId/dislike
 
 
 
@@ -37,7 +37,7 @@ class ApiConstants {
   static const String commentPost = '/comments'; // + /:postId
   static const String getComments = '/comments'; // + /:postId
   static const String likeComment = '/comments/like'; // + /:commentId
-  
+
 
   // Story endpoints
   static const String stories = '/stories';

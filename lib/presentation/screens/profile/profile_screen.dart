@@ -6,6 +6,7 @@ import 'package:travel_diary_mob_app/business_logic/app_bloc/app_event.dart';
 import 'package:travel_diary_mob_app/business_logic/auth_bloc/auth_bloc.dart';
 import 'package:travel_diary_mob_app/business_logic/auth_bloc/auth_event.dart';
 import 'package:travel_diary_mob_app/business_logic/auth_bloc/auth_state.dart';
+import 'package:travel_diary_mob_app/data/models/post_model.dart';
 
 import '../../../business_logic/app_bloc/app_state.dart';
 import '../../../core/theme/app_colors.dart';
@@ -78,11 +79,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
       body: BlocBuilder<AppBloc, AppState>(
         builder: (context, state) {
-          print('Profile Screen - isLoadingUser: ${state.isLoadingUser}');
-          print('Profile Screen - currentUser: ${state.currentUser?.username}');
-          print(
-            'Profile Screen - selectedUser: ${state.selectedUser?.username}',
-          );
           final user = state.currentUser ?? state.selectedUser;
 
           if (state.isLoadingUser) {
@@ -221,8 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             children: [
                               _buildStatColumn(
                                 context,
-                                (user.posts.length + user.videos.length)
-                                    .toString(),
+                                user.posts.length.toString(),
                                 'Posts',
                               ),
                               _buildStatColumn(
@@ -346,9 +341,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         final post = user.posts[index];
         String imageUrl = '';
 
-        if (post.postType == 'video' && post.videoUrl != null) {
+        if (post.type == 'video' && post.videoUrl != null) {
           imageUrl = post.thumbnailUrl ?? post.videoUrl!;
-        } else if (post.postType == 'images' && post.images.isNotEmpty) {
+        } else if (post.type == 'images' && post.images.isNotEmpty) {
           imageUrl = post.images.first.url;
         }
 
@@ -370,7 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       color: AppColors.shimmerBase,
                       child: const Icon(Icons.image),
                     ),
-              if (post.postType == 'video')
+              if (post.type == 'video')
                 const Center(
                   child: Icon(
                     Icons.play_circle_outline,
@@ -386,7 +381,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildVideosGrid(BuildContext context, user) {
-    if (user.videos.isEmpty) {
+    if (user.posts
+        .where((post) => post.type == PostType.video)
+        .toList()
+        .isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
