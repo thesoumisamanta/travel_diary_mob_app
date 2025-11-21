@@ -7,6 +7,14 @@ import '../errors/exceptions.dart';
 class ApiClient {
   late final Dio _dio;
   String? _accessToken;
+  String? _refreshToken;
+  
+  // Callback to get refresh token from storage
+  Future<String?> Function()? _getRefreshToken;
+  // Callback to save new tokens to storage
+  Future<void> Function(String accessToken, String refreshToken)? _onTokensRefreshed;
+  // Callback when refresh fails (logout user)
+  Future<void> Function()? _onRefreshFailed;
 
   ApiClient() {
     _dio = Dio(
@@ -29,7 +37,34 @@ class ApiClient {
           }
           return handler.next(options);
         },
-        onError: (error, handler) {
+        onError: (error, handler) async {
+          // Check if error is 401 and not from refresh endpoint
+          if (error.response?.statusCode == 401 && 
+              !error.requestOptions.path.contains('/auth/refresh-token')) {
+            
+            // Try to refresh token
+            final refreshed = await _refreshAccessToken();
+            
+            if (refreshed) {
+              // Retry the original request with new token
+              final options = error.requestOptions;
+              options.headers['Authorization'] = 'Bearer $_accessToken';
+              
+              try {
+                final response = await _dio.fetch(options);
+                return handler.resolve(response);
+              } catch (e) {
+                return handler.next(error);
+              }
+            } else {
+              // Refresh failed, call logout callback
+              if (_onRefreshFailed != null) {
+                await _onRefreshFailed!();
+              }
+              return handler.next(error);
+            }
+          }
+          
           return handler.next(error);
         },
       ),
@@ -38,6 +73,74 @@ class ApiClient {
 
   void setAccessToken(String? token) {
     _accessToken = token;
+  }
+
+  void setRefreshToken(String? token) {
+    _refreshToken = token;
+  }
+
+  // Set callbacks for token management
+  void setTokenCallbacks({
+    Future<String?> Function()? getRefreshToken,
+    Future<void> Function(String accessToken, String refreshToken)? onTokensRefreshed,
+    Future<void> Function()? onRefreshFailed,
+  }) {
+    _getRefreshToken = getRefreshToken;
+    _onTokensRefreshed = onTokensRefreshed;
+    _onRefreshFailed = onRefreshFailed;
+  }
+
+  // Refresh access token using refresh token
+  Future<bool> _refreshAccessToken() async {
+    try {
+      print('🔄 Attempting to refresh access token...');
+      
+      // Get refresh token from callback
+      String? refreshToken = _refreshToken;
+      if (_getRefreshToken != null) {
+        refreshToken = await _getRefreshToken!();
+      }
+
+      if (refreshToken == null) {
+        print('❌ No refresh token available');
+        return false;
+      }
+
+      // Call refresh token endpoint
+      final response = await _dio.post(
+        ApiConstants.refreshToken,
+        data: {'refresh_token': refreshToken},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $refreshToken',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data;
+        final newAccessToken = data['data']['access_token'] ?? data['data']['accessToken'];
+        final newRefreshToken = data['data']['refresh_token'] ?? data['data']['refreshToken'];
+
+        if (newAccessToken != null) {
+          _accessToken = newAccessToken;
+          
+          // Save new tokens via callback
+          if (_onTokensRefreshed != null && newRefreshToken != null) {
+            await _onTokensRefreshed!(newAccessToken, newRefreshToken);
+          }
+          
+          print('✅ Token refreshed successfully');
+          return true;
+        }
+      }
+
+      print('❌ Token refresh failed - invalid response');
+      return false;
+    } catch (e) {
+      print('❌ Token refresh error: $e');
+      return false;
+    }
   }
 
   Future<Response> get(

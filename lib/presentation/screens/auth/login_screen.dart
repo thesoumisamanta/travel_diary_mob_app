@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:travel_diary_mob_app/core/constants/api_constants.dart';
 import '../../../business_logic/auth_bloc/auth_bloc.dart';
 import '../../../business_logic/auth_bloc/auth_event.dart';
 import '../../../business_logic/auth_bloc/auth_state.dart';
@@ -47,11 +48,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void _loadRememberedCredentials() async {
     final storage = context.read<AuthBloc>().storageRepository;
     final rememberMe = await storage.getRememberMe() ?? false;
-    
+
     if (rememberMe) {
       final email = await storage.getUserEmail();
       final password = await storage.getUserPassword();
-      
+
       if (mounted) {
         setState(() {
           _rememberMe = true;
@@ -79,6 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
+  
 
     // Pass rememberMe to the event - BLoC will handle storage
     context.read<AuthBloc>().add(
@@ -111,28 +113,35 @@ class _LoginScreenState extends State<LoginScreen> {
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 40,
+                  ),
                   child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1,
+                        ),
                         Text(
                           'Travel Diary',
-                          style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
+                          style: Theme.of(context).textTheme.displaySmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Share Your Travel Stories',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
-                        SizedBox(height: MediaQuery.of(context).size.height * 0.08),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.08,
+                        ),
                         CustomTextField(
                           controller: _emailController,
                           label: 'Email or Username',
@@ -171,7 +180,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             TextButton(
                               onPressed: () {
-                                Navigator.pushNamed(context, '/forgot-password');
+                                Navigator.pushNamed(
+                                  context,
+                                  '/forgot-password',
+                                );
                               },
                               child: const Text('Forgot Password?'),
                             ),
@@ -200,7 +212,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               onTap: () {
                                 Navigator.of(context).pushReplacement(
                                   MaterialPageRoute(
-                                    builder: (context) => const RegisterScreen(),
+                                    builder: (context) =>
+                                        const RegisterScreen(),
                                   ),
                                 );
                               },

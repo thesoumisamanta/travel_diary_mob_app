@@ -11,19 +11,48 @@ class PostRepository {
 
   // Feed & Posts
   Future<List<PostModel>> getFeed(int page) async {
-    final response = await _apiService.getFeed(page);
-    
-    if (response.success && response.data != null) {
-      final List<dynamic> data = response.data as List<dynamic>;
-      return data.map((json) => PostModel.fromJson(json)).toList();
-    } else {
-      throw Exception(response.message ?? 'Failed to load feed');
+    try {
+      print('🔄 Loading feed, page: $page');
+      final response = await _apiService.getVideoFeed(page);
+
+      print('Feed API Response - Success: ${response.success}');
+      print('Feed API Response - Data: ${response.data}');
+
+      if (response.success && response.data != null) {
+        var feedData = response.data;
+
+        // Check if response.data has a nested 'data' field (same issue as user profile)
+        if (feedData is Map<String, dynamic> && feedData.containsKey('data')) {
+          feedData = feedData['data'];
+        }
+
+        print('Feed data after extraction: $feedData');
+        print('Feed data type: ${feedData.runtimeType}');
+
+        if (feedData is List) {
+          print('✅ Feed contains ${feedData.length} posts');
+          final posts = feedData
+              .map((json) => PostModel.fromJson(json as Map<String, dynamic>))
+              .toList();
+          print('✅ Parsed ${posts.length} posts successfully');
+          return posts;
+        } else {
+          return [];
+        }
+      } else {
+        print('❌ Feed API failed: ${response.message}');
+        throw Exception(response.message ?? 'Failed to load feed');
+      }
+    } catch (e, stackTrace) {
+      print('❌ ERROR in getFeed: $e');
+      print('Stack trace: $stackTrace');
+      rethrow;
     }
   }
 
   Future<List<PostModel>> getUserPosts(String userId, int page) async {
     final response = await _apiService.getUserPosts(userId, page);
-    
+
     if (response.success && response.data != null) {
       final List<dynamic> data = response.data as List<dynamic>;
       return data.map((json) => PostModel.fromJson(json)).toList();
@@ -34,7 +63,7 @@ class PostRepository {
 
   Future<PostModel> getPostById(String postId) async {
     final response = await _apiService.getPostById(postId);
-    
+
     if (response.success && response.data != null) {
       return PostModel.fromJson(response.data);
     } else {
@@ -44,7 +73,7 @@ class PostRepository {
 
   Future<PostModel> createPost(Map<String, dynamic> data) async {
     final response = await _apiService.createPost(data);
-    
+
     if (response.success && response.data != null) {
       return PostModel.fromJson(response.data);
     } else {
@@ -54,7 +83,7 @@ class PostRepository {
 
   Future<PostModel> updatePost(String postId, Map<String, dynamic> data) async {
     final response = await _apiService.updatePost(postId, data);
-    
+
     if (response.success && response.data != null) {
       return PostModel.fromJson(response.data);
     } else {
@@ -64,7 +93,7 @@ class PostRepository {
 
   Future<void> deletePost(String postId) async {
     final response = await _apiService.deletePost(postId);
-    
+
     if (!response.success) {
       throw Exception(response.message ?? 'Failed to delete post');
     }
@@ -72,7 +101,7 @@ class PostRepository {
 
   Future<void> likePost(String postId) async {
     final response = await _apiService.likePost(postId);
-    
+
     if (!response.success) {
       throw Exception(response.message ?? 'Failed to like post');
     }
@@ -80,7 +109,7 @@ class PostRepository {
 
   Future<void> unlikePost(String postId) async {
     final response = await _apiService.unlikePost(postId);
-    
+
     if (!response.success) {
       throw Exception(response.message ?? 'Failed to unlike post');
     }
@@ -89,7 +118,7 @@ class PostRepository {
   // Comments
   Future<List<CommentModel>> getPostComments(String postId, int page) async {
     final response = await _apiService.getPostComments(postId, page);
-    
+
     if (response.success && response.data != null) {
       final List<dynamic> data = response.data as List<dynamic>;
       return data.map((json) => CommentModel.fromJson(json)).toList();
@@ -100,7 +129,7 @@ class PostRepository {
 
   Future<CommentModel> addComment(String postId, String content) async {
     final response = await _apiService.addComment(postId, content);
-    
+
     if (response.success && response.data != null) {
       return CommentModel.fromJson(response.data);
     } else {
@@ -110,7 +139,7 @@ class PostRepository {
 
   Future<void> deleteComment(String commentId) async {
     final response = await _apiService.deleteComment(commentId);
-    
+
     if (!response.success) {
       throw Exception(response.message ?? 'Failed to delete comment');
     }
@@ -119,7 +148,7 @@ class PostRepository {
   // Stories
   Future<List<StoryGroupModel>> getStories() async {
     final response = await _apiService.getStories();
-    
+
     if (response.success && response.data != null) {
       final List<dynamic> data = response.data as List<dynamic>;
       return data.map((json) => StoryGroupModel.fromJson(json)).toList();
@@ -130,7 +159,7 @@ class PostRepository {
 
   Future<StoryModel> createStory(Map<String, dynamic> data) async {
     final response = await _apiService.createStory(data);
-    
+
     if (response.success && response.data != null) {
       return StoryModel.fromJson(response.data);
     } else {
@@ -140,7 +169,7 @@ class PostRepository {
 
   Future<void> viewStory(String storyId) async {
     final response = await _apiService.viewStory(storyId);
-    
+
     if (!response.success) {
       throw Exception(response.message ?? 'Failed to view story');
     }
@@ -149,7 +178,7 @@ class PostRepository {
   // Search
   Future<List<PostModel>> searchPosts(String query, int page) async {
     final response = await _apiService.searchPosts(query, page);
-    
+
     if (response.success && response.data != null) {
       final List<dynamic> data = response.data as List<dynamic>;
       return data.map((json) => PostModel.fromJson(json)).toList();
@@ -161,7 +190,7 @@ class PostRepository {
   // Media Upload
   Future<String> uploadMedia(File file) async {
     final response = await _apiService.uploadMedia(file);
-    
+
     if (response.success && response.data != null) {
       final data = response.data as Map<String, dynamic>;
       return data['url'] ?? '';
@@ -172,7 +201,7 @@ class PostRepository {
 
   Future<List<String>> uploadMultipleMedia(List<File> files) async {
     final response = await _apiService.uploadMultipleMedia(files);
-    
+
     if (response.success && response.data != null) {
       final List<dynamic> data = response.data as List<dynamic>;
       return data.map((item) => item['url'] as String).toList();

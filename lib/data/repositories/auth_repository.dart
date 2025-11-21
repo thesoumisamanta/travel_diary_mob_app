@@ -6,7 +6,37 @@ class AuthRepository {
   final ApiService _apiService;
   final StorageRepository _storageRepository;
 
-  AuthRepository(this._apiService, this._storageRepository);
+  AuthRepository(this._apiService, this._storageRepository) {
+    // Setup token refresh callbacks when repository is initialized
+    _setupTokenRefresh();
+  }
+
+  void _setupTokenRefresh() {
+    _apiService.setupTokenCallbacks(
+      // Get refresh token from storage
+      getRefreshToken: () async {
+        return await _storageRepository.getRefreshToken();
+      },
+      
+      // Save new tokens when refreshed
+      onTokensRefreshed: (accessToken, refreshToken) async {
+        await _storageRepository.saveAccessToken(accessToken);
+        await _storageRepository.saveRefreshToken(refreshToken);
+        _apiService.setAccessToken(accessToken);
+        _apiService.setRefreshToken(refreshToken);
+        print('✅ Tokens refreshed and saved');
+      },
+      
+      // Handle refresh failure (logout user)
+      onRefreshFailed: () async {
+        print('❌ Token refresh failed - logging out user');
+        await _storageRepository.clearSessionOnly();
+        _apiService.setAccessToken(null);
+        _apiService.setRefreshToken(null);
+        // Note: You might want to emit an event to navigate to login screen
+      },
+    );
+  }
 
   Future<UserModel> login(String email, String password) async {
     final response = await _apiService.login(email, password);
@@ -22,6 +52,7 @@ class AuthRepository {
       await _storageRepository.saveUserId(user.id);
 
       _apiService.setAccessToken(accessToken);
+      _apiService.setRefreshToken(refreshToken);
 
       return user;
     } else {
@@ -47,6 +78,7 @@ class AuthRepository {
 
       // Set token in API service
       _apiService.setAccessToken(accessToken);
+      _apiService.setRefreshToken(refreshToken);
 
       return user;
     } else {
@@ -63,13 +95,17 @@ class AuthRepository {
       // Clear only session data, keep remember-me data intact
       await _storageRepository.clearSessionOnly();
       _apiService.setAccessToken(null);
+      _apiService.setRefreshToken(null);
     }
   }
 
   Future<bool> isAuthenticated() async {
     final token = await _storageRepository.getAccessToken();
+    final refreshToken = await _storageRepository.getRefreshToken();
+    
     if (token != null) {
       _apiService.setAccessToken(token);
+      _apiService.setRefreshToken(refreshToken);
       return true;
     }
     return false;

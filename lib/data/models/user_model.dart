@@ -1,80 +1,95 @@
-import 'package:equatable/equatable.dart';
+import 'package:travel_diary_mob_app/data/models/video.models.dart';
+
+import 'post_model.dart';
 
 enum AccountType { personal, business }
 
-class UserModel extends Equatable {
+class UserModel {
   final String id;
   final String username;
   final String email;
-  final String? fullName;
-  final String? bio;
+  final String fullName;
   final String? profilePicture;
   final String? coverPicture;
+  final String? bio;
+  final String? website;
+  final bool isVerified;
   final AccountType accountType;
   final int followersCount;
   final int followingCount;
   final int postsCount;
   final bool isFollowing;
   final bool isFollowingMe;
-  final bool isVerified;
-  final String? website;
   final String? location;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final List<PostModel> posts;
+  final List<VideoModel> videos;
 
-  const UserModel({
+  UserModel({
     required this.id,
     required this.username,
     required this.email,
-    this.fullName,
-    this.bio,
+    required this.fullName,
+
     this.profilePicture,
     this.coverPicture,
+    this.bio,
+    this.website,
+    this.isVerified = false,
     required this.accountType,
     this.followersCount = 0,
     this.followingCount = 0,
     this.postsCount = 0,
     this.isFollowing = false,
     this.isFollowingMe = false,
-    this.isVerified = false,
-    this.website,
     this.location,
     required this.createdAt,
-    required this.updatedAt,
+    this.posts = const [],
+    this.videos = const [],
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] ?? json['_id'] ?? '',
+      id: json['_id'] ?? json['id'] ?? '',
       username: json['username'] ?? '',
       email: json['email'] ?? '',
-      fullName: json['full_name'] ?? json['fullName'],
+      fullName: json['fullName'] ?? json['full_name'],
+      profilePicture: json['avatar'] ?? json['profile_picture'],
+      coverPicture: json['coverImage'] ?? json['cover_picture'],
       bio: json['bio'],
-      profilePicture: json['profile_picture'] ?? json['profilePicture'],
-      coverPicture: json['cover_picture'] ?? json['coverPicture'],
-      accountType: json['account_type'] == 'business' ||
-              json['accountType'] == 'business'
-          ? AccountType.business
-          : AccountType.personal,
-      followersCount: json['followers_count'] ?? json['followersCount'] ?? 0,
-      followingCount: json['following_count'] ?? json['followingCount'] ?? 0,
-      postsCount: json['posts_count'] ?? json['postsCount'] ?? 0,
-      isFollowing: json['is_following'] ?? json['isFollowing'] ?? false,
-      isFollowingMe: json['is_following_me'] ?? json['isFollowingMe'] ?? false,
-      isVerified: json['is_verified'] ?? json['isVerified'] ?? false,
-      website: json['website'],
       location: json['location'],
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : json['createdAt'] != null
-              ? DateTime.parse(json['createdAt'])
-              : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : json['updatedAt'] != null
-              ? DateTime.parse(json['updatedAt'])
-              : DateTime.now(),
+      website: json['website'],
+      isVerified: json['isVerified'] ?? json['is_verified'] ?? false,
+      accountType: _parseAccountType(
+        json['accountType'] ?? json['account_type'],
+      ),
+      followersCount: json['followersCount'] ?? json['followers_count'] ?? 0,
+      followingCount: json['followingCount'] ?? json['following_count'] ?? 0,
+      postsCount: json['postsCount'] ?? json['posts_count'] ?? 0,
+      isFollowing: json['isFollowing'] ?? json['is_following'] ?? false,
+      isFollowingMe: json['isFollowingMe'] ?? json['is_following_me'] ?? false,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      posts: json['posts'] != null
+          ? (json['posts'] as List).map((p) => PostModel.fromJson(p)).toList()
+          : [],
+      videos: json['videos'] != null
+          ? (json['videos'] as List).map((v) => VideoModel.fromJson(v)).toList()
+          : [],
     );
+  }
+
+  static AccountType _parseAccountType(dynamic value) {
+    if (value == null) return AccountType.personal;
+
+    if (value is String) {
+      final lower = value.toLowerCase();
+      if (lower == 'business' || lower == 'Business') {
+        return AccountType.business;
+      }
+    }
+    return AccountType.personal;
   }
 
   Map<String, dynamic> toJson() {
@@ -83,20 +98,21 @@ class UserModel extends Equatable {
       'username': username,
       'email': email,
       'full_name': fullName,
-      'bio': bio,
       'profile_picture': profilePicture,
       'cover_picture': coverPicture,
-      'account_type': accountType == AccountType.business ? 'business' : 'personal',
+      'bio': bio,
+      'website': website,
+      'is_verified': isVerified,
+      'account_type': accountType == AccountType.business
+          ? 'Business'
+          : 'Personal',
       'followers_count': followersCount,
       'following_count': followingCount,
       'posts_count': postsCount,
       'is_following': isFollowing,
-      'is_following_me': isFollowingMe,
-      'is_verified': isVerified,
-      'website': website,
-      'location': location,
       'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'posts': posts.map((p) => p.toJson()).toList(),
+      'videos': videos.map((v) => v.toJson()).toList(),
     };
   }
 
@@ -105,62 +121,38 @@ class UserModel extends Equatable {
     String? username,
     String? email,
     String? fullName,
-    String? bio,
     String? profilePicture,
     String? coverPicture,
+    String? bio,
+    String? website,
+    bool? isVerified,
     AccountType? accountType,
     int? followersCount,
     int? followingCount,
     int? postsCount,
     bool? isFollowing,
-    bool? isFollowingMe,
-    bool? isVerified,
-    String? website,
-    String? location,
     DateTime? createdAt,
-    DateTime? updatedAt,
+    List<PostModel>? posts,
+    List<VideoModel>? videos,
   }) {
     return UserModel(
       id: id ?? this.id,
       username: username ?? this.username,
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
-      bio: bio ?? this.bio,
       profilePicture: profilePicture ?? this.profilePicture,
       coverPicture: coverPicture ?? this.coverPicture,
+      bio: bio ?? this.bio,
+      website: website ?? this.website,
+      isVerified: isVerified ?? this.isVerified,
       accountType: accountType ?? this.accountType,
       followersCount: followersCount ?? this.followersCount,
       followingCount: followingCount ?? this.followingCount,
       postsCount: postsCount ?? this.postsCount,
       isFollowing: isFollowing ?? this.isFollowing,
-      isFollowingMe: isFollowingMe ?? this.isFollowingMe,
-      isVerified: isVerified ?? this.isVerified,
-      website: website ?? this.website,
-      location: location ?? this.location,
       createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      posts: posts ?? this.posts,
+      videos: videos ?? this.videos,
     );
   }
-
-  @override
-  List<Object?> get props => [
-        id,
-        username,
-        email,
-        fullName,
-        bio,
-        profilePicture,
-        coverPicture,
-        accountType,
-        followersCount,
-        followingCount,
-        postsCount,
-        isFollowing,
-        isFollowingMe,
-        isVerified,
-        website,
-        location,
-        createdAt,
-        updatedAt,
-      ];
 }

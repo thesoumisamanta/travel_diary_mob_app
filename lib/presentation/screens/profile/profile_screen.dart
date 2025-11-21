@@ -25,12 +25,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
-      print('Logged in user ID: ${authState.user.id}');
-      final userId = authState.user.id;
-      context.read<AppBloc>().add(LoadUserProfile(userId));
+      context.read<AppBloc>().add(LoadUserProfile(''));
     }
   }
 
@@ -80,10 +78,33 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
       body: BlocBuilder<AppBloc, AppState>(
         builder: (context, state) {
-          final user = state.selectedUser;
+          print('Profile Screen - isLoadingUser: ${state.isLoadingUser}');
+          print('Profile Screen - currentUser: ${state.currentUser?.username}');
+          print(
+            'Profile Screen - selectedUser: ${state.selectedUser?.username}',
+          );
+          final user = state.currentUser ?? state.selectedUser;
+
+          if (state.isLoadingUser) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           if (user == null) {
-            return const Center(child: Text('No user data'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Failed to load profile'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<AppBloc>().add(LoadUserProfile(''));
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
           }
 
           return CustomScrollView(
@@ -97,7 +118,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       height: 150,
                       width: double.infinity,
                       color: AppColors.primary.withValues(alpha: 0.1),
-                      child: user.coverPicture != null
+                      child:
+                          user.coverPicture != null &&
+                              user.coverPicture!.isNotEmpty
                           ? CachedNetworkImage(
                               imageUrl: user.coverPicture!,
                               fit: BoxFit.cover,
@@ -113,12 +136,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                             children: [
                               CircleAvatar(
                                 radius: 50,
-                                backgroundImage: user.profilePicture != null
+                                backgroundImage:
+                                    user.profilePicture != null &&
+                                        user.profilePicture!.isNotEmpty
                                     ? CachedNetworkImageProvider(
                                         user.profilePicture!,
                                       )
                                     : null,
-                                child: user.profilePicture == null
+                                child:
+                                    user.profilePicture == null ||
+                                        user.profilePicture!.isEmpty
                                     ? const Icon(Icons.person, size: 50)
                                     : null,
                               ),
@@ -159,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
-                          if (user.bio != null) ...[
+                          if (user.bio != null && user.bio!.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             Text(
                               user.bio!,
@@ -167,7 +194,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
-                          if (user.website != null) ...[
+                          if (user.website != null &&
+                              user.website!.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -193,7 +221,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                             children: [
                               _buildStatColumn(
                                 context,
-                                user.postsCount.toString(),
+                                (user.posts.length + user.videos.length)
+                                    .toString(),
                                 'Posts',
                               ),
                               _buildStatColumn(
@@ -249,16 +278,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                   controller: _tabController,
                   tabs: const [
                     Tab(icon: Icon(Icons.grid_3x3), text: 'Posts'),
+                    Tab(icon: Icon(Icons.video_library), text: 'Videos'),
                     Tab(icon: Icon(Icons.bookmark_outline), text: 'Saved'),
                   ],
                 ),
               ),
-              // Posts Grid
+              // Content
               SliverFillRemaining(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildPostsGrid(context, state),
+                    _buildPostsGrid(context, user),
+                    _buildVideosGrid(context, user),
                     _buildSavedGrid(context),
                   ],
                 ),
@@ -285,8 +316,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildPostsGrid(BuildContext context, AppState state) {
-    if (state.userPosts.isEmpty) {
+  Widget _buildPostsGrid(BuildContext context, user) {
+    if (user.posts.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -310,21 +341,138 @@ class _ProfileScreenState extends State<ProfileScreen>
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
-      itemCount: state.userPosts.length,
+      itemCount: user.posts.length,
       itemBuilder: (context, index) {
-        final post = state.userPosts[index];
+        final post = user.posts[index];
+        String imageUrl = '';
+
+        if (post.postType == 'video' && post.videoUrl != null) {
+          imageUrl = post.thumbnailUrl ?? post.videoUrl!;
+        } else if (post.postType == 'images' && post.images.isNotEmpty) {
+          imageUrl = post.images.first.url;
+        }
+
         return ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: CachedNetworkImage(
-            imageUrl: post.media.first.url,
-            fit: BoxFit.cover,
-            placeholder: (context, url) =>
-                Container(color: AppColors.shimmerBase),
-            errorWidget: (context, url, error) => const Icon(Icons.error),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              imageUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          Container(color: AppColors.shimmerBase),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.error),
+                    )
+                  : Container(
+                      color: AppColors.shimmerBase,
+                      child: const Icon(Icons.image),
+                    ),
+              if (post.postType == 'video')
+                const Center(
+                  child: Icon(
+                    Icons.play_circle_outline,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+            ],
           ),
         );
       },
     );
+  }
+
+  Widget _buildVideosGrid(BuildContext context, user) {
+    if (user.videos.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.video_library_outlined,
+              size: 48,
+              color: AppColors.textHint,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No videos yet',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 16 / 9,
+      ),
+      itemCount: user.videos.length,
+      itemBuilder: (context, index) {
+        final video = user.videos[index];
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              video.thumbnailUrl != null && video.thumbnailUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: video.thumbnailUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          Container(color: AppColors.shimmerBase),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.error),
+                    )
+                  : Container(
+                      color: AppColors.shimmerBase,
+                      child: const Icon(Icons.video_library),
+                    ),
+              const Center(
+                child: Icon(
+                  Icons.play_circle_outline,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+              Positioned(
+                bottom: 4,
+                right: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _formatDuration(video.duration),
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDuration(int? seconds) {
+    if (seconds == null) return '';
+    final duration = Duration(seconds: seconds);
+    final minutes = duration.inMinutes;
+    final secs = duration.inSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   Widget _buildSavedGrid(BuildContext context) {
