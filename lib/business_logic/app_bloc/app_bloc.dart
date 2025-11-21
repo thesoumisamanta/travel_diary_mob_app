@@ -28,7 +28,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     on<LoadUserPosts>(_onLoadUserPosts);
     on<LoadPostDetails>(_onLoadPostDetails);
     on<CreatePost>(_onCreatePost);
-    on<DeletePost>(_onDeletePost);
+    // on<DeletePost>(_onDeletePost);
     on<LikePost>(_onLikePost);
 
     // Comment Events
@@ -245,24 +245,24 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     }
   }
 
-  Future<void> _onDeletePost(DeletePost event, Emitter<AppState> emit) async {
-    try {
-      await postRepository.deletePost(event.postId);
+  // Future<void> _onDeletePost(DeletePost event, Emitter<AppState> emit) async {
+  //   try {
+  //     await postRepository.deletePost(event.postId);
 
-      emit(
-        state.copyWith(
-          feedPosts: state.feedPosts
-              .where((p) => p.id != event.postId)
-              .toList(),
-          userPosts: state.userPosts
-              .where((p) => p.id != event.postId)
-              .toList(),
-        ),
-      );
-    } catch (e) {
-      emit(state.copyWith(postError: e.toString()));
-    }
-  }
+  //     emit(
+  //       state.copyWith(
+  //         feedPosts: state.feedPosts
+  //             .where((p) => p.id != event.postId)
+  //             .toList(),
+  //         userPosts: state.userPosts
+  //             .where((p) => p.id != event.postId)
+  //             .toList(),
+  //       ),
+  //     );
+  //   } catch (e) {
+  //     emit(state.copyWith(postError: e.toString()));
+  //   }
+  // }
 
   Future<void> _onLikePost(LikePost event, Emitter<AppState> emit) async {
     try {

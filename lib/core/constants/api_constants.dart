@@ -22,27 +22,22 @@ class ApiConstants {
   static const String followStatus = '/follow/status'; // + /:userId
 
   // Post endpoints
-  static const String posts = '/posts';
-  static const String postFeed = '/posts/feed/following';
-  static const String videofeed = '/videos/feed/following'; 
-  static const String createPost = '/posts/upload';
-  static const String updatePost = '/posts'; // + /:postId
-  static const String deletePost = '/posts'; // + /:postId
-  static const String likePost = '/posts'; // + /:postId/like
-  static const String unlikePost = '/posts'; // + /:postId/like
-  static const String userPosts = '/posts/user'; // + /:userId
+  static const String post = '/post';
+  static const String uploadPosts = '/posts/upload';
   static const String searchPosts = '/posts/search';
+  static const String allPosts = '/posts/list';
+  static const String getFeed = '/posts/feed/following'; 
+  static const String userPost = '/posts/user'; // + /:userId
+  static const String likePost = '/posts/:id/like'; // + /:postId
+  static const String dislikePost = '/posts/:id/dislike'; // + /:postId
 
-  // Video endpoints
-  static const String videos = '/videos';
-  static const String videoFeed = '/videos/feed/following'; // Feed from followed users only
-  static const String uploadVideo = '/videos/upload';
-  static const String likeVideo = '/videos'; // + /:videoId/like
-  static const String userVideos = '/videos/user'; // + /:userId
-  static const String searchVideos = '/videos/search';
+
 
   // Comment endpoints
   static const String commentPost = '/comments'; // + /:postId
+  static const String getComments = '/comments'; // + /:postId
+  static const String likeComment = '/comments/like'; // + /:commentId
+  
 
   // Story endpoints
   static const String stories = '/stories';

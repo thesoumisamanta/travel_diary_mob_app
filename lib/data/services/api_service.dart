@@ -18,7 +18,8 @@ class ApiService {
   // Setup token refresh callbacks
   void setupTokenCallbacks({
     required Future<String?> Function() getRefreshToken,
-    required Future<void> Function(String accessToken, String refreshToken) onTokensRefreshed,
+    required Future<void> Function(String accessToken, String refreshToken)
+    onTokensRefreshed,
     required Future<void> Function() onRefreshFailed,
   }) {
     _apiClient.setTokenCallbacks(
@@ -33,21 +34,12 @@ class ApiService {
     final Map<String, dynamic> body;
 
     if (identifier.contains('@')) {
-      body = {
-        'email': identifier,
-        'password': password,
-      };
+      body = {'email': identifier, 'password': password};
     } else {
-      body = {
-        'username': identifier,
-        'password': password,
-      };
+      body = {'username': identifier, 'password': password};
     }
 
-    final response = await _apiClient.post(
-      ApiConstants.login,
-      data: body,
-    );
+    final response = await _apiClient.post(ApiConstants.login, data: body);
 
     return ApiResponse.fromJson(response.data, null);
   }
@@ -69,7 +61,7 @@ class ApiService {
       final responseData = response.data as Map<String, dynamic>;
       return ApiResponse(
         success: responseData['success'] ?? false,
-        data: responseData['data'], 
+        data: responseData['data'],
         message: responseData['message'],
         statusCode: responseData['statusCode'],
       );
@@ -133,73 +125,73 @@ class ApiService {
   // Post APIs - Feed from followed users
   Future<ApiResponse> getPostFeed(int page) async {
     final response = await _apiClient.get(
-      ApiConstants.postFeed,
+      ApiConstants.getFeed,
       queryParameters: {'page': page},
     );
+
+    // Check if response.data is already a List (direct array response)
+    if (response.data is List) {
+      return ApiResponse(
+        success: true,
+        data: response.data, // Pass the list directly
+        message: 'Success',
+        statusCode: response.statusCode,
+      );
+    }
+
+    // Otherwise, handle it as a standard wrapped response
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> getUserPosts(String userId, int page) async {
     final response = await _apiClient.get(
-      '${ApiConstants.userPosts}/$userId',
+      '${ApiConstants.allPosts}/$userId',
       queryParameters: {'page': page},
     );
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> getPostById(String postId) async {
-    final response = await _apiClient.get('${ApiConstants.posts}/$postId');
+    final response = await _apiClient.get('${ApiConstants.userPost}/$postId');
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> createPost(Map<String, dynamic> data) async {
-    final response = await _apiClient.post(ApiConstants.createPost, data: data);
-    return ApiResponse.fromJson(response.data, null);
-  }
-
-  Future<ApiResponse> updatePost(
-    String postId,
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _apiClient.put(
-      '${ApiConstants.updatePost}/$postId',
+    final response = await _apiClient.post(
+      ApiConstants.uploadPosts,
       data: data,
     );
     return ApiResponse.fromJson(response.data, null);
   }
 
-  Future<ApiResponse> deletePost(String postId) async {
-    final response = await _apiClient.delete(
-      '${ApiConstants.deletePost}/$postId',
-    );
-    return ApiResponse.fromJson(response.data, null);
-  }
+  // Future<ApiResponse> updatePost(
+  //   String postId,
+  //   Map<String, dynamic> data,
+  // ) async {
+  //   final response = await _apiClient.put(
+  //     '${ApiConstants.updatePost}/$postId',
+  //     data: data,
+  //   );
+  //   return ApiResponse.fromJson(response.data, null);
+  // }
+
+  // Future<ApiResponse> deletePost(String postId) async {
+  //   final response = await _apiClient.delete(
+  //     '${ApiConstants.deletePost}/$postId',
+  //   );
+  //   return ApiResponse.fromJson(response.data, null);
+  // }
 
   Future<ApiResponse> likePost(String postId) async {
-    final response = await _apiClient.post('${ApiConstants.likePost}/$postId/like');
+    final response = await _apiClient.post(
+      '${ApiConstants.likePost}/$postId/like',
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> unlikePost(String postId) async {
     final response = await _apiClient.post(
-      '${ApiConstants.unlikePost}/$postId/like',
-    );
-    return ApiResponse.fromJson(response.data, null);
-  }
-
-  // Video APIs - Feed from followed users
-  Future<ApiResponse> getVideoFeed(int page) async {
-    final response = await _apiClient.get(
-      ApiConstants.videoFeed,
-      queryParameters: {'page': page},
-    );
-    return ApiResponse.fromJson(response.data, null);
-  }
-
-  Future<ApiResponse> getUserVideos(String userId, int page) async {
-    final response = await _apiClient.get(
-      '${ApiConstants.userVideos}/$userId',
-      queryParameters: {'page': page},
+      '${ApiConstants.dislikePost}/$postId/like',
     );
     return ApiResponse.fromJson(response.data, null);
   }
@@ -282,14 +274,6 @@ class ApiService {
   Future<ApiResponse> searchPosts(String query, int page) async {
     final response = await _apiClient.get(
       ApiConstants.searchPosts,
-      queryParameters: {'q': query, 'page': page},
-    );
-    return ApiResponse.fromJson(response.data, null);
-  }
-
-  Future<ApiResponse> searchVideos(String query, int page) async {
-    final response = await _apiClient.get(
-      ApiConstants.searchVideos,
       queryParameters: {'q': query, 'page': page},
     );
     return ApiResponse.fromJson(response.data, null);

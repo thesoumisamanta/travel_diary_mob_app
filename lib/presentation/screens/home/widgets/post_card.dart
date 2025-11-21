@@ -12,7 +12,7 @@ import '../../../widgets/loading_widget.dart';
 class PostCard extends StatelessWidget {
   final PostModel post;
 
-  const PostCard({Key? key, required this.post}) : super(key: key);
+  const PostCard({super.key, required this.post});
 
   @override
   Widget build(BuildContext context) {
@@ -26,15 +26,7 @@ class PostCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundImage: post.author.profilePicture != null
-                      ? CachedNetworkImageProvider(post.author.profilePicture!)
-                      : null,
-                  child: post.author.profilePicture == null
-                      ? const Icon(Icons.person)
-                      : null,
-                ),
+                buildUserAvatar(post.author.profilePicture),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -44,9 +36,7 @@ class PostCard extends StatelessWidget {
                         children: [
                           Text(
                             post.author.username,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                           if (post.author.isVerified) ...[
@@ -72,10 +62,7 @@ class PostCard extends StatelessWidget {
                       value: 'save',
                       child: Text('Save Post'),
                     ),
-                    const PopupMenuItem(
-                      value: 'report',
-                      child: Text('Report'),
-                    ),
+                    const PopupMenuItem(value: 'report', child: Text('Report')),
                   ],
                 ),
               ],
@@ -110,19 +97,16 @@ class PostCard extends StatelessWidget {
                     ? CachedNetworkImage(
                         imageUrl: post.media.first.url,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) =>
-                            const LoadingWidget(),
+                        placeholder: (context, url) => const LoadingWidget(),
                         errorWidget: (context, url, error) =>
                             const Icon(Icons.error),
                       )
                     : PageView.builder(
                         itemCount: post.media.length,
-                        itemBuilder: (context, index) =>
-                            CachedNetworkImage(
+                        itemBuilder: (context, index) => CachedNetworkImage(
                           imageUrl: post.media[index].url,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) =>
-                              const LoadingWidget(),
+                          placeholder: (context, url) => const LoadingWidget(),
                           errorWidget: (context, url, error) =>
                               const Icon(Icons.error),
                         ),
@@ -143,8 +127,8 @@ class PostCard extends StatelessWidget {
                           GestureDetector(
                             onTap: () {
                               context.read<AppBloc>().add(
-                                    LikePost(post.id, post.isLiked),
-                                  );
+                                LikePost(post.id, post.isLiked),
+                              );
                             },
                             child: Icon(
                               post.isLiked
@@ -234,6 +218,33 @@ class PostCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget buildUserAvatar(String? avatarUrl) {
+    if (avatarUrl == null || avatarUrl.isEmpty) {
+      // Show placeholder avatar
+      return CircleAvatar(
+        backgroundColor: AppColors.primary,
+        child: Text(
+          post.author.username[0].toUpperCase(),
+          style: TextStyle(color: Colors.white),
+        ),
+      );
+    }
+
+    return CachedNetworkImage(
+      imageUrl: avatarUrl,
+      imageBuilder: (context, imageProvider) =>
+          CircleAvatar(backgroundImage: imageProvider),
+      placeholder: (context, url) => CircularProgressIndicator(),
+      errorWidget: (context, url, error) => CircleAvatar(
+        backgroundColor: AppColors.primary,
+        child: Text(
+          post.author.username[0].toUpperCase(),
+          style: TextStyle(color: Colors.white),
+        ),
       ),
     );
   }

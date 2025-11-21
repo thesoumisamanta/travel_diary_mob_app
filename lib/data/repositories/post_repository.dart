@@ -13,7 +13,7 @@ class PostRepository {
   Future<List<PostModel>> getFeed(int page) async {
     try {
       print('🔄 Loading feed, page: $page');
-      final response = await _apiService.getVideoFeed(page);
+      final response = await _apiService.getPostFeed(page);
 
       print('Feed API Response - Success: ${response.success}');
       print('Feed API Response - Data: ${response.data}');
@@ -81,23 +81,23 @@ class PostRepository {
     }
   }
 
-  Future<PostModel> updatePost(String postId, Map<String, dynamic> data) async {
-    final response = await _apiService.updatePost(postId, data);
+  // Future<PostModel> updatePost(String postId, Map<String, dynamic> data) async {
+  //   final response = await _apiService.updatePost(postId, data);
 
-    if (response.success && response.data != null) {
-      return PostModel.fromJson(response.data);
-    } else {
-      throw Exception(response.message ?? 'Failed to update post');
-    }
-  }
+  //   if (response.success && response.data != null) {
+  //     return PostModel.fromJson(response.data);
+  //   } else {
+  //     throw Exception(response.message ?? 'Failed to update post');
+  //   }
+  // }
 
-  Future<void> deletePost(String postId) async {
-    final response = await _apiService.deletePost(postId);
+  // Future<void> deletePost(String postId) async {
+  //   final response = await _apiService.deletePost(postId);
 
-    if (!response.success) {
-      throw Exception(response.message ?? 'Failed to delete post');
-    }
-  }
+  //   if (!response.success) {
+  //     throw Exception(response.message ?? 'Failed to delete post');
+  //   }
+  // }
 
   Future<void> likePost(String postId) async {
     final response = await _apiService.likePost(postId);

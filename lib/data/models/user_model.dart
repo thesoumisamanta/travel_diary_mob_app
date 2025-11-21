@@ -52,8 +52,9 @@ class UserModel {
     return UserModel(
       id: json['_id'] ?? json['id'] ?? '',
       username: json['username'] ?? '',
-      email: json['email'] ?? '',
-      fullName: json['fullName'] ?? json['full_name'],
+      // ✅ CHANGE: Email might not be present in populated user objects
+      email: json['email'] ?? 'no-email@placeholder.com',
+      fullName: json['fullName'] ?? json['full_name'] ?? '',
       profilePicture: json['avatar'] ?? json['profile_picture'],
       coverPicture: json['coverImage'] ?? json['cover_picture'],
       bio: json['bio'],
