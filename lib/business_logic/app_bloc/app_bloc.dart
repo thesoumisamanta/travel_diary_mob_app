@@ -259,10 +259,15 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   //   }
   // }
 
+  // ✅ FIXED: Only showing the corrected _onLikePost and _onDislikePost methods
+  // Replace these methods in your app_bloc.dart
+
   Future<void> _onLikePost(LikePost event, Emitter<AppState> emit) async {
+    // Store original state for rollback
     final originalFeedPosts = List<PostModel>.from(state.feedPosts);
     final originalSelectedPost = state.selectedPost;
 
+    // Find current post
     final currentPost = state.feedPosts.firstWhere(
       (p) => p.id == event.postId,
       orElse: () => state.selectedPost!,
@@ -271,36 +276,47 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     final wasLiked = currentPost.isLiked;
     final wasDisliked = currentPost.isDisliked;
 
+    // ✅ FIXED: Correct optimistic update logic
     final optimisticFeedPosts = state.feedPosts.map((post) {
       if (post.id == event.postId) {
-        final newIsLiked = !wasLiked;
-        return post.copyWith(
-          isLiked: newIsLiked,
-          isDisliked: false,
-          likesCount: newIsLiked ? post.likesCount + 1 : post.likesCount - 1,
-          dislikesCount: wasDisliked
-              ? post.dislikesCount - 1
-              : post.dislikesCount,
-        );
+        if (wasLiked) {
+          // User is UNLIKING (removing like)
+          return post.copyWith(isLiked: false, likesCount: post.likesCount - 1);
+        } else {
+          // User is LIKING
+          return post.copyWith(
+            isLiked: true,
+            isDisliked: false, // Remove dislike if present
+            likesCount: post.likesCount + 1,
+            dislikesCount: wasDisliked
+                ? post.dislikesCount - 1
+                : post.dislikesCount,
+          );
+        }
       }
       return post;
     }).toList();
 
     PostModel? optimisticSelectedPost = state.selectedPost;
     if (state.selectedPost?.id == event.postId) {
-      final newIsLiked = !wasLiked;
-      optimisticSelectedPost = state.selectedPost?.copyWith(
-        isLiked: newIsLiked,
-        isDisliked: false,
-        likesCount: newIsLiked
-            ? (state.selectedPost?.likesCount ?? 0) + 1
-            : (state.selectedPost?.likesCount ?? 1) - 1,
-        dislikesCount: wasDisliked
-            ? (state.selectedPost?.dislikesCount ?? 1) - 1
-            : (state.selectedPost?.dislikesCount ?? 0),
-      );
+      if (wasLiked) {
+        optimisticSelectedPost = state.selectedPost?.copyWith(
+          isLiked: false,
+          likesCount: (state.selectedPost?.likesCount ?? 1) - 1,
+        );
+      } else {
+        optimisticSelectedPost = state.selectedPost?.copyWith(
+          isLiked: true,
+          isDisliked: false,
+          likesCount: (state.selectedPost?.likesCount ?? 0) + 1,
+          dislikesCount: wasDisliked
+              ? (state.selectedPost?.dislikesCount ?? 1) - 1
+              : (state.selectedPost?.dislikesCount ?? 0),
+        );
+      }
     }
 
+    // Apply optimistic update
     emit(
       state.copyWith(
         feedPosts: optimisticFeedPosts,
@@ -309,8 +325,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     );
 
     try {
+      // Call backend
       final backendData = await postRepository.likePost(event.postId);
 
+      // ✅ Confirm with backend data
       final confirmedFeedPosts = state.feedPosts.map((post) {
         if (post.id == event.postId) {
           return post.copyWith(
@@ -340,7 +358,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         ),
       );
     } catch (e) {
-
+      // Rollback on error
       emit(
         state.copyWith(
           feedPosts: originalFeedPosts,
@@ -352,10 +370,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   Future<void> _onDislikePost(DislikePost event, Emitter<AppState> emit) async {
-
+    // Store original state for rollback
     final originalFeedPosts = List<PostModel>.from(state.feedPosts);
     final originalSelectedPost = state.selectedPost;
 
+    // Find current post
     final currentPost = state.feedPosts.firstWhere(
       (p) => p.id == event.postId,
       orElse: () => state.selectedPost!,
@@ -364,37 +383,48 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     final wasLiked = currentPost.isLiked;
     final wasDisliked = currentPost.isDisliked;
 
-
+    // ✅ FIXED: Correct optimistic update logic
     final optimisticFeedPosts = state.feedPosts.map((post) {
       if (post.id == event.postId) {
-        final newIsDisliked = !wasDisliked;
-        return post.copyWith(
-          isDisliked: newIsDisliked,
-          isLiked: false,
-          dislikesCount: newIsDisliked
-              ? post.dislikesCount + 1
-              : post.dislikesCount - 1,
-          likesCount: wasLiked ? post.likesCount - 1 : post.likesCount,
-        );
+        if (wasDisliked) {
+          // User is REMOVING dislike
+          return post.copyWith(
+            isDisliked: false,
+            dislikesCount: post.dislikesCount - 1,
+          );
+        } else {
+          // User is DISLIKING
+          return post.copyWith(
+            isDisliked: true,
+            isLiked: false, // Remove like if present
+            dislikesCount: post.dislikesCount + 1,
+            likesCount: wasLiked ? post.likesCount - 1 : post.likesCount,
+          );
+        }
       }
       return post;
     }).toList();
 
     PostModel? optimisticSelectedPost = state.selectedPost;
     if (state.selectedPost?.id == event.postId) {
-      final newIsDisliked = !wasDisliked;
-      optimisticSelectedPost = state.selectedPost?.copyWith(
-        isDisliked: newIsDisliked,
-        isLiked: false,
-        dislikesCount: newIsDisliked
-            ? (state.selectedPost?.dislikesCount ?? 0) + 1
-            : (state.selectedPost?.dislikesCount ?? 1) - 1,
-        likesCount: wasLiked
-            ? (state.selectedPost?.likesCount ?? 1) - 1
-            : (state.selectedPost?.likesCount ?? 0),
-      );
+      if (wasDisliked) {
+        optimisticSelectedPost = state.selectedPost?.copyWith(
+          isDisliked: false,
+          dislikesCount: (state.selectedPost?.dislikesCount ?? 1) - 1,
+        );
+      } else {
+        optimisticSelectedPost = state.selectedPost?.copyWith(
+          isDisliked: true,
+          isLiked: false,
+          dislikesCount: (state.selectedPost?.dislikesCount ?? 0) + 1,
+          likesCount: wasLiked
+              ? (state.selectedPost?.likesCount ?? 1) - 1
+              : (state.selectedPost?.likesCount ?? 0),
+        );
+      }
     }
 
+    // Apply optimistic update
     emit(
       state.copyWith(
         feedPosts: optimisticFeedPosts,
@@ -403,10 +433,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     );
 
     try {
-      // Call API and get backend response
+      // Call backend
       final backendData = await postRepository.dislikePost(event.postId);
 
-
+      // ✅ Confirm with backend data
       final confirmedFeedPosts = state.feedPosts.map((post) {
         if (post.id == event.postId) {
           return post.copyWith(
@@ -436,7 +466,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         ),
       );
     } catch (e) {
-
+      // Rollback on error
       emit(
         state.copyWith(
           feedPosts: originalFeedPosts,

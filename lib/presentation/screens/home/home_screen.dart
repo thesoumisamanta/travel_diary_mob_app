@@ -173,10 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       return const SizedBox.shrink();
                     }
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: PostCard(post: state.feedPosts[index]),
-                    );
+                    return PostCard(post: state.feedPosts[index]);
                   },
                   childCount: state.feedPosts.length +
                       (state.hasMorePosts && state.isLoadingPosts ? 1 : 0),

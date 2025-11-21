@@ -12,7 +12,7 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({Key? key}) : super(key: key);
+  const EditProfileScreen({super.key});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -41,7 +41,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     // Initialize with current user data
     final state = context.read<AppBloc>().state;
     if (state.currentUser != null) {
-      _fullNameController.text = state.currentUser!.fullName ?? '';
+      _fullNameController.text = state.currentUser!.fullName;
       _usernameController.text = state.currentUser!.username;
       _bioController.text = state.currentUser!.bio ?? '';
       _websiteController.text = state.currentUser!.website ?? '';

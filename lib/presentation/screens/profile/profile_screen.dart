@@ -175,13 +175,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                             ],
                           ),
-                          if (user.fullName != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              user.fullName!,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
+                          ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            user.fullName,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
                           if (user.bio != null && user.bio!.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             Text(

@@ -17,9 +17,7 @@ class PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ FIXED: Use BlocBuilder instead of BlocSelector for better reactivity
     return BlocBuilder<AppBloc, AppState>(
-      // ✅ buildWhen ensures rebuild only when this specific post changes
       buildWhen: (previous, current) {
         final prevPost = previous.feedPosts.firstWhere(
           (p) => p.id == post.id,
@@ -29,12 +27,12 @@ class PostCard extends StatelessWidget {
           (p) => p.id == post.id,
           orElse: () => post,
         );
-        
+
         // Rebuild if like/dislike state or counts changed
         return prevPost.isLiked != currPost.isLiked ||
-               prevPost.isDisliked != currPost.isDisliked ||
-               prevPost.likesCount != currPost.likesCount ||
-               prevPost.dislikesCount != currPost.dislikesCount;
+            prevPost.isDisliked != currPost.isDisliked ||
+            prevPost.likesCount != currPost.likesCount ||
+            prevPost.dislikesCount != currPost.dislikesCount;
       },
       builder: (context, state) {
         // Get the updated post from state
@@ -43,245 +41,234 @@ class PostCard extends StatelessWidget {
           orElse: () => post,
         );
 
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Author Header
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    buildUserAvatar(updatedPost.author.profilePicture),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (updatedPost.media.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => PostDetailScreen(post: updatedPost),
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  height: 300,
+                  width: double.infinity,
+                  child: updatedPost.media.length == 1
+                      ? CachedNetworkImage(
+                          imageUrl: updatedPost.media.first.url,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const LoadingWidget(),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
+                        )
+                      : PageView.builder(
+                          itemCount: updatedPost.media.length,
+                          itemBuilder: (context, index) => CachedNetworkImage(
+                            imageUrl: updatedPost.media[index].url,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) =>
+                                const LoadingWidget(),
+                            errorWidget: (context, url, error) =>
+                                const Icon(Icons.error),
+                          ),
+                        ),
+                ),
+              ),
+            ],
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      buildUserAvatar(updatedPost.author.profilePicture),
+                      const SizedBox(width: 12),
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (updatedPost.caption != null)
+                            Text(
+                              updatedPost.caption!,
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           Row(
                             children: [
                               Text(
-                                updatedPost.author.username,
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
+                                updatedPost.author.fullName,
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 12,
+                                ),
                               ),
+                              const SizedBox(width: 6),
                               if (updatedPost.author.isVerified) ...[
-                                const SizedBox(width: 4),
                                 const Icon(
                                   Icons.verified,
                                   size: 16,
                                   color: AppColors.primary,
                                 ),
+                                SizedBox(width: 4),
                               ],
-                            ],
-                          ),
-                          Text(
-                            DateFormatter.formatRelativeTime(updatedPost.createdAt),
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuButton(
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'save',
-                          child: Text('Save Post'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'report',
-                          child: Text('Report'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Caption
-              if (updatedPost.caption != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    updatedPost.caption!,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              
-              // Media
-              if (updatedPost.media.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => PostDetailScreen(post: updatedPost),
-                      ),
-                    );
-                  },
-                  child: SizedBox(
-                    height: 300,
-                    width: double.infinity,
-                    child: updatedPost.media.length == 1
-                        ? CachedNetworkImage(
-                            imageUrl: updatedPost.media.first.url,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => const LoadingWidget(),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.error),
-                          )
-                        : PageView.builder(
-                            itemCount: updatedPost.media.length,
-                            itemBuilder: (context, index) => CachedNetworkImage(
-                              imageUrl: updatedPost.media[index].url,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => const LoadingWidget(),
-                              errorWidget: (context, url, error) =>
-                                  const Icon(Icons.error),
-                            ),
-                          ),
-                  ),
-                ),
-              ],
-              
-              // Actions
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  context.read<AppBloc>().add(
-                                    LikePost(updatedPost.id, updatedPost.isLiked),
-                                  );
-                                },
-                                child: Icon(
-                                  updatedPost.isLiked
-                                      ? Icons.thumb_up
-                                      : Icons.thumb_up_outlined,
-                                  color: updatedPost.isLiked
-                                      ? AppColors.primary
-                                      : AppColors.textSecondary,
-                                  size: 24,
-                                ),
+                              Container(
+                                width: 4,
+                                height: 4,
+                                color: AppColors.border,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 2),
                               Text(
-                                updatedPost.likesCount.toString(),
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(width: 16),
-
-                              // ✅ DISLIKE BUTTON with proper state
-                              GestureDetector(
-                                onTap: () {
-                                  context.read<AppBloc>().add(
-                                    DislikePost(updatedPost.id),
-                                  );
-                                },
-                                child: Icon(
-                                  updatedPost.isDisliked
-                                      ? Icons.thumb_down
-                                      : Icons.thumb_down_outlined,
-                                  color: updatedPost.isDisliked
-                                      ? AppColors.primary
-                                      : AppColors.textSecondary,
-                                  size: 24,
+                                DateFormatter.formatRelativeTime(
+                                  updatedPost.createdAt,
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                updatedPost.dislikesCount.toString(),
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(width: 16),
-
-                              // COMMENTS BUTTON
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          PostDetailScreen(post: updatedPost),
-                                    ),
-                                  );
-                                },
-                                child: const Icon(
-                                  Icons.chat_bubble_outline,
+                                style: TextStyle(
                                   color: AppColors.textSecondary,
-                                  size: 24,
+                                  fontSize: 10,
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                updatedPost.commentsCount.toString(),
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(width: 16),
-
-                              // SHARE BUTTON
-                              GestureDetector(
-                                onTap: () {
-                                  // Share implementation
-                                },
-                                child: const Icon(
-                                  Icons.share_outlined,
-                                  color: AppColors.textSecondary,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                updatedPost.sharesCount.toString(),
-                                style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ],
-                          ),
-                        ),
-
-                        // DOWNLOAD BUTTON
-                        GestureDetector(
-                          onTap: () {
-                            // Download implementation
-                          },
-                          child: const Icon(
-                            Icons.download_outlined,
-                            color: AppColors.textSecondary,
-                            size: 24,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (updatedPost.location != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            size: 16,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            updatedPost.location!,
-                            style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
                       ),
                     ],
+                  ),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                context.read<AppBloc>().add(
+                                  LikePost(updatedPost.id, updatedPost.isLiked),
+                                );
+                              },
+                              child: Icon(
+                                updatedPost.isLiked
+                                    ? Icons.thumb_up
+                                    : Icons.thumb_up_outlined,
+                                color: updatedPost.isLiked
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              updatedPost.likesCount.toString(),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(width: 16),
+
+                            GestureDetector(
+                              onTap: () {
+                                context.read<AppBloc>().add(
+                                  DislikePost(updatedPost.id),
+                                );
+                              },
+                              child: Icon(
+                                updatedPost.isDisliked
+                                    ? Icons.thumb_down
+                                    : Icons.thumb_down_outlined,
+                                color: updatedPost.isDisliked
+                                    ? AppColors.error
+                                    : AppColors.textSecondary,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              updatedPost.dislikesCount.toString(),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(width: 16),
+
+                            // COMMENTS BUTTON
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        PostDetailScreen(post: updatedPost),
+                                  ),
+                                );
+                              },
+                              child: const Icon(
+                                Icons.chat_bubble_outline,
+                                color: AppColors.textSecondary,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              updatedPost.commentsCount.toString(),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(width: 16),
+
+                            // SHARE BUTTON
+                            GestureDetector(
+                              onTap: () {
+                                // Share implementation
+                              },
+                              child: const Icon(
+                                Icons.share_outlined,
+                                color: AppColors.textSecondary,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              updatedPost.sharesCount.toString(),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      PopupMenuButton(
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'save',
+                            child: Text('Save Post'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'download',
+                            child: Text('Download'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  if (updatedPost.location != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          updatedPost.location!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
