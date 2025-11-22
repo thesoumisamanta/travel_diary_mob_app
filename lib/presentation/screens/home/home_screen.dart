@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:travel_diary_mob_app/presentation/screens/shorts/shorts_screen.dart';
 import '../../../business_logic/app_bloc/app_bloc.dart';
 import '../../../business_logic/app_bloc/app_event.dart';
 import '../../../business_logic/app_bloc/app_state.dart';
@@ -22,8 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   late PageController _pageController;
 
-  // List of indices where bottom nav should be hidden
-  final List<int> _hideBottomNavIndices = [1]; // Hide on Search (index 1)
+  final List<int> _hideBottomNavIndices = [1]; 
 
   @override
   void initState() {
@@ -76,13 +76,12 @@ class _HomeScreenState extends State<HomeScreen> {
               const NeverScrollableScrollPhysics(), // Disable swipe navigation
           children: [
             _buildFeedPage(),
-            const SearchScreen(), // Mark as embedded
+            const ShortsScreen(),
             const CreatePostScreen(),
             const ChatListScreen(),
             const ProfileScreen(isCurrentUser: true),
           ],
         ),
-        // Conditionally show bottom navigation bar
         bottomNavigationBar: _hideBottomNavIndices.contains(_selectedIndex)
             ? null
             : _buildBottomNavigationBar(),
@@ -104,9 +103,9 @@ class _HomeScreenState extends State<HomeScreen> {
           label: 'Home',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.search_outlined),
-          activeIcon: Icon(Icons.search),
-          label: 'Search',
+          icon: Icon(Icons.short_text),
+          activeIcon: Icon(Icons.short_text),
+          label: 'Shorts',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.add_circle_outline),
@@ -133,12 +132,20 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return AppBar(
-      title: Text(
-        'Travel Diary',
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: AppColors.primary,
-        ),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            "Traveller's Cloud",
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+          IconButton(onPressed: (){
+            Navigator.pushNamed(context, '/search');
+          }, icon: Icon(Icons.search))
+        ],
       ),
       elevation: 0,
       automaticallyImplyLeading: false,

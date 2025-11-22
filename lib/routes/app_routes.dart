@@ -3,6 +3,7 @@ import 'package:travel_diary_mob_app/presentation/screens/auth/login_screen.dart
 import 'package:travel_diary_mob_app/presentation/screens/home/home_screen.dart';
 import 'package:travel_diary_mob_app/presentation/screens/profile/edit_profile_screen.dart';
 import 'package:travel_diary_mob_app/presentation/screens/profile/profile_screen.dart';
+import 'package:travel_diary_mob_app/presentation/screens/search/search_screen.dart';
 
 class AppRoutes {
   static const String login = '/login';
@@ -11,6 +12,7 @@ class AppRoutes {
   static const String register = '/register';
   static const String profile = '/profile';
   static const String editProfile = '/edit-profile';
+  static const String search = '/search';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -47,11 +49,17 @@ class AppRoutes {
           settings: settings,
         );
 
-        case editProfile:
-          return MaterialPageRoute(
-            builder: (_) => const EditProfileScreen(),
-            settings: settings,
-          );
+      case editProfile:
+        return MaterialPageRoute(
+          builder: (_) => const EditProfileScreen(),
+          settings: settings,
+        );
+
+      case search:
+        return MaterialPageRoute(
+          builder: (_) => const SearchScreen(),
+          settings: settings,
+        );
 
       default:
         return MaterialPageRoute(
@@ -67,7 +75,6 @@ class AppRoutes {
                     "Route '${settings.name}' not found",
                     style: const TextStyle(fontSize: 16),
                   ),
-                  
                 ],
               ),
             ),
