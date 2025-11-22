@@ -7,6 +7,7 @@ import 'package:travel_diary_mob_app/business_logic/auth_bloc/auth_bloc.dart';
 import 'package:travel_diary_mob_app/business_logic/auth_bloc/auth_event.dart';
 import 'package:travel_diary_mob_app/business_logic/auth_bloc/auth_state.dart';
 import 'package:travel_diary_mob_app/data/models/post_model.dart';
+import 'package:travel_diary_mob_app/data/models/user_model.dart';
 
 import '../../../business_logic/app_bloc/app_state.dart';
 import '../../../core/theme/app_colors.dart';
@@ -175,13 +176,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                             ],
                           ),
-                          ...[
                           const SizedBox(height: 4),
                           Text(
                             user.fullName,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
-                        ],
                           if (user.bio != null && user.bio!.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             Text(
@@ -241,15 +240,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                             ),
                             decoration: BoxDecoration(
                               color:
-                                  user.accountType.toString() ==
-                                      'AccountType.business'
+                                  user.accountType == AccountType.business
                                   ? AppColors.accent
                                   : AppColors.primary,
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
-                              user.accountType.toString() ==
-                                      'AccountType.business'
+                              user.accountType == AccountType.business
                                   ? 'Business Account'
                                   : 'Personal Account',
                               style: const TextStyle(
@@ -341,10 +338,13 @@ class _ProfileScreenState extends State<ProfileScreen>
         final post = user.posts[index];
         String imageUrl = '';
 
-        if (post.type == 'video' && post.videoUrl != null) {
-          imageUrl = post.thumbnailUrl ?? post.videoUrl!;
-        } else if (post.type == 'images' && post.images.isNotEmpty) {
-          imageUrl = post.images.first.url;
+        if (post.media.isNotEmpty) {
+          final firstMedia = post.media.first;
+          if (firstMedia.type == PostType.video) {
+            imageUrl = firstMedia.thumbnail ?? firstMedia.url;
+          } else {
+            imageUrl = firstMedia.url;
+          }
         }
 
         return ClipRRect(
@@ -365,7 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       color: AppColors.shimmerBase,
                       child: const Icon(Icons.image),
                     ),
-              if (post.type == 'video')
+              if (post.type == PostType.video)
                 const Center(
                   child: Icon(
                     Icons.play_circle_outline,
@@ -381,10 +381,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildVideosGrid(BuildContext context, user) {
-    if (user.posts
+    final videoPosts = user.posts
         .where((post) => post.type == PostType.video)
-        .toList()
-        .isEmpty) {
+        .toList();
+
+    if (videoPosts.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -412,17 +413,26 @@ class _ProfileScreenState extends State<ProfileScreen>
         mainAxisSpacing: 8,
         childAspectRatio: 16 / 9,
       ),
-      itemCount: user.videos.length,
+      itemCount: videoPosts.length,
       itemBuilder: (context, index) {
-        final video = user.videos[index];
+        final post = videoPosts[index];
+        String thumbnailUrl = '';
+        double? duration;
+
+        if (post.media.isNotEmpty) {
+          final videoMedia = post.media.first;
+          thumbnailUrl = videoMedia.thumbnail ?? videoMedia.url;
+          duration = videoMedia.duration;
+        }
+
         return ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              video.thumbnailUrl != null && video.thumbnailUrl!.isNotEmpty
+              thumbnailUrl.isNotEmpty
                   ? CachedNetworkImage(
-                      imageUrl: video.thumbnailUrl!,
+                      imageUrl: thumbnailUrl,
                       fit: BoxFit.cover,
                       placeholder: (context, url) =>
                           Container(color: AppColors.shimmerBase),
@@ -440,24 +450,25 @@ class _ProfileScreenState extends State<ProfileScreen>
                   size: 40,
                 ),
               ),
-              Positioned(
-                bottom: 4,
-                right: 4,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _formatDuration(video.duration),
-                    style: const TextStyle(color: Colors.white, fontSize: 10),
+              if (duration != null)
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _formatDuration(duration.toInt()),
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         );
