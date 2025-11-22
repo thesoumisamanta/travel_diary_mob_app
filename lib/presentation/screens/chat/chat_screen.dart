@@ -28,9 +28,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _messageController = TextEditingController();
     _scrollController = ScrollController();
-    context
-        .read<AppBloc>()
-        .add(LoadChatHistory(widget.chat.id));
+    context.read<AppBloc>().add(LoadChatHistory(widget.chat.id));
   }
 
   @override
@@ -44,9 +42,9 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_messageController.text.trim().isNotEmpty) {
       context.read<AppBloc>().add(
             SendMessage(
-              receiverId: widget.chat.participant.id,
-              content: _messageController.text.trim(),
-              messageType: 'text',
+              widget.chat.participant.id,
+              _messageController.text.trim(),
+              'text',
             ),
           );
       _messageController.clear();
@@ -91,7 +89,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 value: 'call',
                 child: const Text('Voice Call'),
                 onTap: () {
-                  // Initiate voice call
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Initiating voice call...'),
@@ -103,7 +100,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 value: 'video',
                 child: const Text('Video Call'),
                 onTap: () {
-                  // Check if both users follow each other for video call
                   if (widget.chat.participant.isFollowing &&
                       widget.chat.participant.isFollowingMe) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -189,20 +185,12 @@ class _ChatScreenState extends State<ChatScreen> {
                           if (!isOwn) ...[
                             CircleAvatar(
                               radius: 16,
-                              backgroundImage: widget.chat.participant
-                                          .profilePicture !=
-                                      null
+                              backgroundImage: widget.chat.participant.profilePicture != null
                                   ? CachedNetworkImageProvider(
-                                      widget.chat.participant
-                                          .profilePicture!)
+                                      widget.chat.participant.profilePicture!)
                                   : null,
-                              child: widget.chat.participant
-                                          .profilePicture ==
-                                      null
-                                  ? const Icon(
-                                      Icons.person,
-                                      size: 12,
-                                    )
+                              child: widget.chat.participant.profilePicture == null
+                                  ? const Icon(Icons.person, size: 12)
                                   : null,
                             ),
                             const SizedBox(width: 8),
@@ -220,9 +208,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 border: isOwn
                                     ? null
-                                    : Border.all(
-                                        color: AppColors.border,
-                                      ),
+                                    : Border.all(color: AppColors.border),
                               ),
                               child: Column(
                                 crossAxisAlignment: isOwn
@@ -241,11 +227,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                   if (message.mediaUrl != null) ...[
                                     const SizedBox(height: 8),
                                     ClipRRect(
-                                      borderRadius:
-                                          BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(8),
                                       child: CachedNetworkImage(
-                                        imageUrl:
-                                            message.mediaUrl!,
+                                        imageUrl: message.mediaUrl!,
                                         width: 200,
                                         height: 200,
                                         fit: BoxFit.cover,
@@ -254,9 +238,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   ],
                                   const SizedBox(height: 4),
                                   Text(
-                                    DateFormatter.formatTime(
-                                      message.createdAt,
-                                    ),
+                                    DateFormatter.formatTime(message.createdAt),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: isOwn
@@ -267,31 +249,14 @@ class _ChatScreenState extends State<ChatScreen> {
                                   if (isOwn) ...[
                                     const SizedBox(height: 2),
                                     Row(
-                                      mainAxisSize:
-                                          MainAxisSize.min,
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        if (message.status ==
-                                            MessageStatus.sent)
-                                          const Icon(
-                                            Icons.done,
-                                            size: 12,
-                                            color: Colors.white70,
-                                          ),
-                                        if (message.status ==
-                                            MessageStatus
-                                                .delivered)
-                                          const Icon(
-                                            Icons.done_all,
-                                            size: 12,
-                                            color: Colors.white70,
-                                          ),
-                                        if (message.status ==
-                                            MessageStatus.read)
-                                          const Icon(
-                                            Icons.done_all,
-                                            size: 12,
-                                            color: Colors.blue,
-                                          ),
+                                        if (message.status == MessageStatus.sent)
+                                          const Icon(Icons.done, size: 12, color: Colors.white70),
+                                        if (message.status == MessageStatus.delivered)
+                                          const Icon(Icons.done_all, size: 12, color: Colors.white70),
+                                        if (message.status == MessageStatus.read)
+                                          const Icon(Icons.done_all, size: 12, color: Colors.blue),
                                       ],
                                     ),
                                   ],
@@ -307,12 +272,8 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          // Message Input
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
                 IconButton(

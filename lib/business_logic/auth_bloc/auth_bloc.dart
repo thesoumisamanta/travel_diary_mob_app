@@ -33,7 +33,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final user = await authRepository.getUserProfile();
       emit(AuthAuthenticated(user));
     } catch (e) {
-      emit(AuthUnauthenticated());
+      // If we can't get profile but have token, still consider authenticated
+      // The profile will be loaded separately
+      final hasToken = await storageRepository.getAccessToken() != null;
+      if (hasToken) {
+        try {
+          final user = await authRepository.getUserProfile();
+          emit(AuthAuthenticated(user));
+        } catch (_) {
+          emit(AuthUnauthenticated());
+        }
+      } else {
+        emit(AuthUnauthenticated());
+      }
     }
   }
 
@@ -44,26 +56,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     try {
-      // First, save remember me preferences BEFORE login attempt
+      // Save remember me preferences BEFORE login attempt
       await storageRepository.saveRememberMe(event.rememberMe);
 
       if (event.rememberMe) {
-        // Save credentials if remember me is checked
         await storageRepository.saveUserEmail(event.identifier);
         await storageRepository.saveUserPassword(event.password);
       } else {
-        // Clear saved credentials if remember me is unchecked
         await storageRepository.clearRememberMeData();
       }
 
       // Attempt login
       final user = await authRepository.login(event.identifier, event.password);
 
+      // Important: Emit AuthAuthenticated AFTER successful login
       emit(AuthAuthenticated(user));
     } catch (e) {
       // On login failure, clear remember me data for security
       await storageRepository.clearRememberMeData();
-      emit(AuthError(e.toString()));
+      
+      // Emit error first
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
+      
+      // Then emit unauthenticated - use a small delay to ensure error is processed
+      await Future.delayed(const Duration(milliseconds: 100));
       emit(AuthUnauthenticated());
     }
   }
@@ -83,7 +99,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       });
       emit(AuthAuthenticated(user));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
+      await Future.delayed(const Duration(milliseconds: 100));
       emit(AuthUnauthenticated());
     }
   }
@@ -95,9 +112,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     try {
       await authRepository.logout();
-      emit(AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError(e.toString()));
+      // Ignore API error and proceed with local logout
+    } finally {
       emit(AuthUnauthenticated());
     }
   }

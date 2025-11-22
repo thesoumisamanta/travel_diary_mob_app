@@ -10,9 +10,12 @@ class PostRepository {
   PostRepository(this._apiService);
 
   // Feed & Posts
-  Future<List<PostModel>> getFeed(int page) async {
+  Future<List<PostModel>> getFeed(int page, {PostType? filterType}) async {
     try {
-      final response = await _apiService.getPostFeed(page);
+      final response = await _apiService.getPostFeed(
+        page,
+        type: filterType?.toApiString(),
+      );
 
       if (response.success && response.data != null) {
         var feedData = response.data;
@@ -22,30 +25,30 @@ class PostRepository {
         }
 
         if (feedData is List) {
-          final posts = feedData
+          return feedData
               .map((json) => PostModel.fromJson(json as Map<String, dynamic>))
               .toList();
-          return posts;
-        } else {
-          return [];
         }
-      } else {
-        throw Exception(response.message ?? 'Failed to load feed');
+        return [];
       }
+      throw Exception(response.message ?? 'Failed to load feed');
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<List<PostModel>> getUserPosts(String userId, int page) async {
-    final response = await _apiService.getUserPosts(userId, page);
+  Future<List<PostModel>> getUserPosts(String userId, int page, {PostType? filterType}) async {
+    final response = await _apiService.getUserPosts(
+      userId,
+      page,
+      type: filterType?.toApiString(),
+    );
 
     if (response.success && response.data != null) {
       final List<dynamic> data = response.data as List<dynamic>;
       return data.map((json) => PostModel.fromJson(json)).toList();
-    } else {
-      throw Exception(response.message ?? 'Failed to load user posts');
     }
+    throw Exception(response.message ?? 'Failed to load user posts');
   }
 
   Future<PostModel> getPostById(String postId) async {
@@ -53,9 +56,8 @@ class PostRepository {
 
     if (response.success && response.data != null) {
       return PostModel.fromJson(response.data);
-    } else {
-      throw Exception(response.message ?? 'Failed to load post');
     }
+    throw Exception(response.message ?? 'Failed to load post');
   }
 
   Future<PostModel> createPost(Map<String, dynamic> data) async {
@@ -63,28 +65,9 @@ class PostRepository {
 
     if (response.success && response.data != null) {
       return PostModel.fromJson(response.data);
-    } else {
-      throw Exception(response.message ?? 'Failed to create post');
     }
+    throw Exception(response.message ?? 'Failed to create post');
   }
-
-  // Future<PostModel> updatePost(String postId, Map<String, dynamic> data) async {
-  //   final response = await _apiService.updatePost(postId, data);
-
-  //   if (response.success && response.data != null) {
-  //     return PostModel.fromJson(response.data);
-  //   } else {
-  //     throw Exception(response.message ?? 'Failed to update post');
-  //   }
-  // }
-
-  // Future<void> deletePost(String postId) async {
-  //   final response = await _apiService.deletePost(postId);
-
-  //   if (!response.success) {
-  //     throw Exception(response.message ?? 'Failed to delete post');
-  //   }
-  // }
 
   Future<Map<String, dynamic>> likePost(String postId) async {
     try {
@@ -94,8 +77,6 @@ class PostRepository {
         throw Exception(response.message ?? 'Failed to like post');
       }
 
-      // ✅ Return the updated like/dislike state from backend
-      // Backend returns: { likes, dislikes, isLiked, isDisliked }
       if (response.data != null && response.data is Map<String, dynamic>) {
         return {
           'likesCount': response.data['likes'] ?? 0,
@@ -105,13 +86,7 @@ class PostRepository {
         };
       }
 
-      // Fallback
-      return {
-        'likesCount': 0,
-        'dislikesCount': 0,
-        'isLiked': false,
-        'isDisliked': false,
-      };
+      return {'likesCount': 0, 'dislikesCount': 0, 'isLiked': false, 'isDisliked': false};
     } catch (e) {
       rethrow;
     }
@@ -125,7 +100,6 @@ class PostRepository {
         throw Exception(response.message ?? 'Failed to dislike post');
       }
 
-      // ✅ Return the updated like/dislike state from backend
       if (response.data != null && response.data is Map<String, dynamic>) {
         return {
           'likesCount': response.data['likes'] ?? 0,
@@ -135,16 +109,40 @@ class PostRepository {
         };
       }
 
-      // Fallback
-      return {
-        'likesCount': 0,
-        'dislikesCount': 0,
-        'isLiked': false,
-        'isDisliked': false,
-      };
+      return {'likesCount': 0, 'dislikesCount': 0, 'isLiked': false, 'isDisliked': false};
     } catch (e) {
       rethrow;
     }
+  }
+
+  // Search Posts
+  Future<List<PostModel>> searchPosts(String query, int page, {PostType? filterType}) async {
+    final response = await _apiService.searchPosts(
+      query,
+      page,
+      type: filterType?.toApiString(),
+    );
+
+    if (response.success && response.data != null) {
+      final List<dynamic> data = response.data is List
+          ? response.data
+          : (response.data['data'] ?? []);
+      return data.map((json) => PostModel.fromJson(json)).toList();
+    }
+    throw Exception(response.message ?? 'Failed to search posts');
+  }
+
+  // Get Shorts
+  Future<List<PostModel>> getShorts(int page) async {
+    final response = await _apiService.getShorts(page);
+
+    if (response.success && response.data != null) {
+      final List<dynamic> data = response.data is List
+          ? response.data
+          : (response.data['data'] ?? []);
+      return data.map((json) => PostModel.fromJson(json)).toList();
+    }
+    throw Exception(response.message ?? 'Failed to load shorts');
   }
 
   // Comments
@@ -154,9 +152,8 @@ class PostRepository {
     if (response.success && response.data != null) {
       final List<dynamic> data = response.data as List<dynamic>;
       return data.map((json) => CommentModel.fromJson(json)).toList();
-    } else {
-      throw Exception(response.message ?? 'Failed to load comments');
     }
+    throw Exception(response.message ?? 'Failed to load comments');
   }
 
   Future<CommentModel> addComment(String postId, String content) async {
@@ -164,14 +161,12 @@ class PostRepository {
 
     if (response.success && response.data != null) {
       return CommentModel.fromJson(response.data);
-    } else {
-      throw Exception(response.message ?? 'Failed to add comment');
     }
+    throw Exception(response.message ?? 'Failed to add comment');
   }
 
   Future<void> deleteComment(String commentId) async {
     final response = await _apiService.deleteComment(commentId);
-
     if (!response.success) {
       throw Exception(response.message ?? 'Failed to delete comment');
     }
@@ -184,9 +179,8 @@ class PostRepository {
     if (response.success && response.data != null) {
       final List<dynamic> data = response.data as List<dynamic>;
       return data.map((json) => StoryGroupModel.fromJson(json)).toList();
-    } else {
-      throw Exception(response.message ?? 'Failed to load stories');
     }
+    throw Exception(response.message ?? 'Failed to load stories');
   }
 
   Future<StoryModel> createStory(Map<String, dynamic> data) async {
@@ -194,28 +188,14 @@ class PostRepository {
 
     if (response.success && response.data != null) {
       return StoryModel.fromJson(response.data);
-    } else {
-      throw Exception(response.message ?? 'Failed to create story');
     }
+    throw Exception(response.message ?? 'Failed to create story');
   }
 
   Future<void> viewStory(String storyId) async {
     final response = await _apiService.viewStory(storyId);
-
     if (!response.success) {
       throw Exception(response.message ?? 'Failed to view story');
-    }
-  }
-
-  // Search
-  Future<List<PostModel>> searchPosts(String query, int page) async {
-    final response = await _apiService.searchPosts(query, page);
-
-    if (response.success && response.data != null) {
-      final List<dynamic> data = response.data as List<dynamic>;
-      return data.map((json) => PostModel.fromJson(json)).toList();
-    } else {
-      throw Exception(response.message ?? 'Failed to search posts');
     }
   }
 
@@ -226,9 +206,8 @@ class PostRepository {
     if (response.success && response.data != null) {
       final data = response.data as Map<String, dynamic>;
       return data['url'] ?? '';
-    } else {
-      throw Exception(response.message ?? 'Failed to upload media');
     }
+    throw Exception(response.message ?? 'Failed to upload media');
   }
 
   Future<List<String>> uploadMultipleMedia(List<File> files) async {
@@ -237,8 +216,7 @@ class PostRepository {
     if (response.success && response.data != null) {
       final List<dynamic> data = response.data as List<dynamic>;
       return data.map((item) => item['url'] as String).toList();
-    } else {
-      throw Exception(response.message ?? 'Failed to upload media');
     }
+    throw Exception(response.message ?? 'Failed to upload media');
   }
 }

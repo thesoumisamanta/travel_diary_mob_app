@@ -6,52 +6,37 @@ class UserRepository {
 
   UserRepository(this._apiService);
 
+  /// Get current user profile
   Future<UserModel> getUserProfile() async {
-    try {
-      final response = await _apiService.getUserProfile();
+    final response = await _apiService.getUserProfile();
 
-
-      if (response.success && response.data != null) {
-        var userData = response.data;
-
-        // Check if response.data has a nested 'data' field
-        if (userData is Map<String, dynamic> && userData.containsKey('data')) {
-          userData = userData['data'];
-        }
-
-
-        final user = UserModel.fromJson(userData as Map<String, dynamic>);
-        return user;
-      } else {
-        throw Exception(response.message ?? 'Failed to load user profile');
-      }
-    } catch (e) {
-
-      rethrow;
+    if (response.success && response.data != null) {
+      return UserModel.fromJson(response.data);
     }
+    throw Exception(response.message ?? 'Failed to load user profile');
   }
 
+  /// Get user channel by username
   Future<UserModel> getUserChannel(String username) async {
     final response = await _apiService.getUserChannel(username);
 
     if (response.success && response.data != null) {
-      final userData = response.data as Map<String, dynamic>;
-      return UserModel.fromJson(userData);
-    } else {
-      throw Exception(response.message ?? 'Failed to load user channel');
+      return UserModel.fromJson(response.data);
     }
+    throw Exception(response.message ?? 'Failed to load user channel');
   }
 
+  /// Update user profile
   Future<UserModel> updateProfile(Map<String, dynamic> data) async {
     final response = await _apiService.updateProfile(data);
 
     if (response.success && response.data != null) {
       return UserModel.fromJson(response.data);
-    } else {
-      throw Exception(response.message ?? 'Failed to update profile');
     }
+    throw Exception(response.message ?? 'Failed to update profile');
   }
 
+  /// Follow a user
   Future<void> followUser(String userId) async {
     final response = await _apiService.followUser(userId);
 
@@ -60,6 +45,7 @@ class UserRepository {
     }
   }
 
+  /// Unfollow a user
   Future<void> unfollowUser(String userId) async {
     final response = await _apiService.unfollowUser(userId);
 
@@ -68,47 +54,54 @@ class UserRepository {
     }
   }
 
-  Future<bool> checkFollowStatus(String userId) async {
-    final response = await _apiService.checkFollowStatus(userId);
-
-    if (response.success && response.data != null) {
-      final data = response.data as Map<String, dynamic>;
-      return data['isFollowing'] ?? false;
-    } else {
-      return false;
-    }
-  }
-
+  /// Get followers of a user
   Future<List<UserModel>> getFollowers(String userId, int page) async {
     final response = await _apiService.getFollowers(userId, page);
 
     if (response.success && response.data != null) {
-      final List<dynamic> data = response.data as List<dynamic>;
+      final List<dynamic> data = response.data is List
+          ? response.data
+          : (response.data['data'] ?? []);
       return data.map((json) => UserModel.fromJson(json)).toList();
-    } else {
-      throw Exception(response.message ?? 'Failed to load followers');
     }
+    throw Exception(response.message ?? 'Failed to load followers');
   }
 
+  /// Get following of a user
   Future<List<UserModel>> getFollowing(String userId, int page) async {
     final response = await _apiService.getFollowing(userId, page);
 
     if (response.success && response.data != null) {
-      final List<dynamic> data = response.data as List<dynamic>;
+      final List<dynamic> data = response.data is List
+          ? response.data
+          : (response.data['data'] ?? []);
       return data.map((json) => UserModel.fromJson(json)).toList();
-    } else {
-      throw Exception(response.message ?? 'Failed to load following');
     }
+    throw Exception(response.message ?? 'Failed to load following');
   }
 
+  /// Check if current user follows target user
+  Future<bool> checkFollowStatus(String userId) async {
+    final response = await _apiService.checkFollowStatus(userId);
+
+    if (response.success && response.data != null) {
+      return response.data['isFollowing'] ?? false;
+    }
+    throw Exception(response.message ?? 'Failed to check follow status');
+  }
+
+  /// Search users by username or fullName
   Future<List<UserModel>> searchUsers(String query, int page) async {
+    if (query.trim().isEmpty) return [];
+
     final response = await _apiService.searchUsers(query, page);
 
     if (response.success && response.data != null) {
-      final List<dynamic> data = response.data as List<dynamic>;
+      final List<dynamic> data = response.data is List
+          ? response.data
+          : (response.data['data'] ?? []);
       return data.map((json) => UserModel.fromJson(json)).toList();
-    } else {
-      throw Exception(response.message ?? 'Failed to search users');
     }
+    throw Exception(response.message ?? 'Failed to search users');
   }
 }

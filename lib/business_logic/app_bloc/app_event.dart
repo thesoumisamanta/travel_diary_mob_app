@@ -1,244 +1,165 @@
-import 'package:equatable/equatable.dart';
 import 'dart:io';
+import '../../data/models/post_model.dart';
 
-abstract class AppEvent extends Equatable {
-  const AppEvent();
+abstract class AppEvent {}
 
-  @override
-  List<Object?> get props => [];
-}
-
-// User Events
-class LoadUserProfile extends AppEvent {
-  final String userId;
-
-  const LoadUserProfile(this.userId);
-
-  @override
-  List<Object?> get props => [userId];
-}
+// ==================== USER EVENTS ====================
+class LoadUserProfile extends AppEvent {}
 
 class UpdateUserProfile extends AppEvent {
   final Map<String, dynamic> data;
-
-  const UpdateUserProfile(this.data);
-
-  @override
-  List<Object?> get props => [data];
+  UpdateUserProfile(this.data);
 }
 
 class FollowUser extends AppEvent {
   final String userId;
-
-  const FollowUser(this.userId);
-
-  @override
-  List<Object?> get props => [userId];
+  FollowUser(this.userId);
 }
 
 class UnfollowUser extends AppEvent {
   final String userId;
-
-  const UnfollowUser(this.userId);
-
-  @override
-  List<Object?> get props => [userId];
+  UnfollowUser(this.userId);
 }
 
-// Post Events
+// ==================== POST EVENTS ====================
 class LoadFeed extends AppEvent {
   final bool refresh;
-
-  const LoadFeed({this.refresh = false});
-
-  @override
-  List<Object?> get props => [refresh];
+  final PostType? filterType;
+  LoadFeed({this.refresh = false, this.filterType});
 }
 
 class LoadUserPosts extends AppEvent {
   final String userId;
   final bool refresh;
-
-  const LoadUserPosts(this.userId, {this.refresh = false});
-
-  @override
-  List<Object?> get props => [userId, refresh];
+  final PostType? filterType;
+  LoadUserPosts(this.userId, {this.refresh = false, this.filterType});
 }
 
 class LoadPostDetails extends AppEvent {
   final String postId;
-
-  const LoadPostDetails(this.postId);
-
-  @override
-  List<Object?> get props => [postId];
+  LoadPostDetails(this.postId);
 }
 
 class CreatePost extends AppEvent {
-  final List<File> mediaFiles;
-  final String? caption;
+  final String caption;
   final String? location;
   final List<String> tags;
   final String postType;
+  final List<File> mediaFiles;
 
-  const CreatePost({
-    required this.mediaFiles,
-    this.caption,
+  CreatePost({
+    required this.caption,
     this.location,
     this.tags = const [],
     required this.postType,
+    required this.mediaFiles,
   });
-
-  @override
-  List<Object?> get props => [mediaFiles, caption, location, tags, postType];
-}
-
-class DeletePost extends AppEvent {
-  final String postId;
-
-  const DeletePost(this.postId);
-
-  @override
-  List<Object?> get props => [postId];
 }
 
 class LikePost extends AppEvent {
   final String postId;
-  final bool isLiked;
-
-  const LikePost(this.postId, this.isLiked);
-
-  @override
-  List<Object?> get props => [postId, isLiked];
+  final bool currentlyLiked;
+  LikePost(this.postId, [this.currentlyLiked = false]);
 }
 
-// Add this event class
 class DislikePost extends AppEvent {
   final String postId;
-
-  const DislikePost(this.postId);
-
-  @override
-  List<Object?> get props => [postId];
+  DislikePost(this.postId);
 }
 
-// Comment Events
+// ==================== SHORTS EVENTS ====================
+class LoadShorts extends AppEvent {
+  final bool refresh;
+  LoadShorts({this.refresh = false});
+}
+
+// ==================== COMMENT EVENTS ====================
 class LoadComments extends AppEvent {
   final String postId;
   final bool refresh;
-
-  const LoadComments(this.postId, {this.refresh = false});
-
-  @override
-  List<Object?> get props => [postId, refresh];
+  LoadComments(this.postId, {this.refresh = false});
 }
 
 class AddComment extends AppEvent {
   final String postId;
   final String content;
-
-  const AddComment(this.postId, this.content);
-
-  @override
-  List<Object?> get props => [postId, content];
+  AddComment(this.postId, this.content);
 }
 
 class DeleteComment extends AppEvent {
   final String commentId;
-
-  const DeleteComment(this.commentId);
-
-  @override
-  List<Object?> get props => [commentId];
+  DeleteComment(this.commentId);
 }
 
-// Story Events
+// ==================== STORY EVENTS ====================
 class LoadStories extends AppEvent {}
 
 class CreateStory extends AppEvent {
   final File mediaFile;
   final String storyType;
-
-  const CreateStory(this.mediaFile, this.storyType);
-
-  @override
-  List<Object?> get props => [mediaFile, storyType];
+  CreateStory(this.mediaFile, this.storyType);
 }
 
 class ViewStory extends AppEvent {
   final String storyId;
-
-  const ViewStory(this.storyId);
-
-  @override
-  List<Object?> get props => [storyId];
+  ViewStory(this.storyId);
 }
 
-// Chat Events
+// ==================== CHAT EVENTS ====================
 class LoadChats extends AppEvent {}
 
 class LoadChatHistory extends AppEvent {
   final String chatId;
   final bool refresh;
-
-  const LoadChatHistory(this.chatId, {this.refresh = false});
-
-  @override
-  List<Object?> get props => [chatId, refresh];
+  LoadChatHistory(this.chatId, {this.refresh = false});
 }
 
 class SendMessage extends AppEvent {
   final String receiverId;
-  final String? content;
-  final File? mediaFile;
+  final String content;
   final String messageType;
+  final File? mediaFile;
 
-  const SendMessage({
-    required this.receiverId,
+  SendMessage(
+    this.receiverId,
     this.content,
+    this.messageType, {
     this.mediaFile,
-    required this.messageType,
   });
-
-  @override
-  List<Object?> get props => [receiverId, content, mediaFile, messageType];
 }
 
 class ReceiveMessage extends AppEvent {
   final Map<String, dynamic> messageData;
-
-  const ReceiveMessage(this.messageData);
-
-  @override
-  List<Object?> get props => [messageData];
+  ReceiveMessage(this.messageData);
 }
 
-// Search Events
+// ==================== SEARCH EVENTS ====================
 class SearchUsers extends AppEvent {
   final String query;
-
-  const SearchUsers(this.query);
-
-  @override
-  List<Object?> get props => [query];
+  final int page;
+  SearchUsers(this.query, {this.page = 1});
 }
 
 class SearchPosts extends AppEvent {
   final String query;
-
-  const SearchPosts(this.query);
-
-  @override
-  List<Object?> get props => [query];
+  final int page;
+  final PostType? filterType;
+  SearchPosts(this.query, {this.page = 1, this.filterType});
 }
 
 class SearchContent extends AppEvent {
   final String query;
-
-  const SearchContent(this.query);
-
-  @override
-  List<Object?> get props => [query];
+  final int page;
+  SearchContent(this.query, {this.page = 1});
 }
 
 class ClearSearch extends AppEvent {}
+
+// ==================== REALTIME SEARCH EVENT ====================
+class RealtimeSearch extends AppEvent {
+  final String query;
+  final SearchFilterType filterType;
+  RealtimeSearch(this.query, {this.filterType = SearchFilterType.all});
+}
+
+enum SearchFilterType { all, users, posts, videos, images, shorts }

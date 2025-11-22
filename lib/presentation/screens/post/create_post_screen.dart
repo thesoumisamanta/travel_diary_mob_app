@@ -101,15 +101,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         .where((tag) => tag.isNotEmpty)
         .toList();
 
+    // Caption is required as String, use empty string if not provided
+    final caption = _captionController.text.isNotEmpty
+        ? _captionController.text
+        : '';
+
+    // Location can be null
+    final location = _locationController.text.isNotEmpty
+        ? _locationController.text
+        : null;
+
     context.read<AppBloc>().add(
           CreatePost(
             mediaFiles: _selectedMedia,
-            caption: _captionController.text.isNotEmpty
-                ? _captionController.text
-                : null,
-            location: _locationController.text.isNotEmpty
-                ? _locationController.text
-                : null,
+            caption: caption,
+            location: location,
             tags: tags,
             postType: _selectedPostType,
           ),

@@ -2,14 +2,13 @@ import 'package:equatable/equatable.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/post_model.dart';
 import '../../data/models/comment_model.dart';
-import '../../data/models/chat_model.dart';
 import '../../data/models/story_model.dart';
+import '../../data/models/chat_model.dart';
 
 class AppState extends Equatable {
   // User State
   final UserModel? currentUser;
   final UserModel? selectedUser;
-  final List<UserModel> searchedUsers;
   final bool isLoadingUser;
   final String? userError;
 
@@ -17,11 +16,17 @@ class AppState extends Equatable {
   final List<PostModel> feedPosts;
   final List<PostModel> userPosts;
   final PostModel? selectedPost;
-  final List<PostModel> searchedPosts;
   final bool isLoadingPosts;
   final bool hasMorePosts;
   final int currentFeedPage;
   final String? postError;
+
+  // Shorts State
+  final List<PostModel> shorts;
+  final bool isLoadingShorts;
+  final bool hasMoreShorts;
+  final int currentShortsPage;
+  final String? shortsError;
 
   // Comment State
   final List<CommentModel> comments;
@@ -43,9 +48,13 @@ class AppState extends Equatable {
   final String? chatError;
 
   // Search State
-  final bool isSearching;
+  final List<UserModel> searchedUsers;
+  final List<PostModel> searchedPosts;
   final String? searchQuery;
+  final bool isSearching;
   final String? searchError;
+  final bool hasMoreSearchResults;
+  final int currentSearchPage;
 
   // Upload State
   final bool isUploading;
@@ -53,54 +62,82 @@ class AppState extends Equatable {
   final String? uploadError;
 
   const AppState({
+    // User
     this.currentUser,
     this.selectedUser,
-    this.searchedUsers = const [],
     this.isLoadingUser = false,
     this.userError,
+    // Posts
     this.feedPosts = const [],
     this.userPosts = const [],
     this.selectedPost,
-    this.searchedPosts = const [],
     this.isLoadingPosts = false,
     this.hasMorePosts = true,
     this.currentFeedPage = 1,
     this.postError,
+    // Shorts
+    this.shorts = const [],
+    this.isLoadingShorts = false,
+    this.hasMoreShorts = true,
+    this.currentShortsPage = 1,
+    this.shortsError,
+    // Comments
     this.comments = const [],
     this.isLoadingComments = false,
     this.hasMoreComments = true,
     this.currentCommentsPage = 1,
     this.commentError,
+    // Stories
     this.stories = const [],
     this.isLoadingStories = false,
     this.storyError,
+    // Chats
     this.chats = const [],
     this.messages = const [],
     this.isLoadingChats = false,
     this.isLoadingMessages = false,
     this.chatError,
-    this.isSearching = false,
+    // Search
+    this.searchedUsers = const [],
+    this.searchedPosts = const [],
     this.searchQuery,
+    this.isSearching = false,
     this.searchError,
+    this.hasMoreSearchResults = false,
+    this.currentSearchPage = 1,
+    // Upload
     this.isUploading = false,
     this.uploadProgress = 0.0,
     this.uploadError,
   });
 
+  // Helper getters for filtered posts
+  List<PostModel> get imagePosts => feedPosts.where((p) => p.isImagePost).toList();
+  List<PostModel> get videoPosts => feedPosts.where((p) => p.isVideoPost).toList();
+  List<PostModel> get shortPosts => feedPosts.where((p) => p.isShortPost).toList();
+
+  // Helper getters for searched filtered posts
+  List<PostModel> get searchedImagePosts => searchedPosts.where((p) => p.isImagePost).toList();
+  List<PostModel> get searchedVideoPosts => searchedPosts.where((p) => p.isVideoPost).toList();
+  List<PostModel> get searchedShortPosts => searchedPosts.where((p) => p.isShortPost).toList();
+
   AppState copyWith({
     UserModel? currentUser,
     UserModel? selectedUser,
-    List<UserModel>? searchedUsers,
     bool? isLoadingUser,
     String? userError,
     List<PostModel>? feedPosts,
     List<PostModel>? userPosts,
     PostModel? selectedPost,
-    List<PostModel>? searchedPosts,
     bool? isLoadingPosts,
     bool? hasMorePosts,
     int? currentFeedPage,
     String? postError,
+    List<PostModel>? shorts,
+    bool? isLoadingShorts,
+    bool? hasMoreShorts,
+    int? currentShortsPage,
+    String? shortsError,
     List<CommentModel>? comments,
     bool? isLoadingComments,
     bool? hasMoreComments,
@@ -114,9 +151,13 @@ class AppState extends Equatable {
     bool? isLoadingChats,
     bool? isLoadingMessages,
     String? chatError,
-    bool? isSearching,
+    List<UserModel>? searchedUsers,
+    List<PostModel>? searchedPosts,
     String? searchQuery,
+    bool? isSearching,
     String? searchError,
+    bool? hasMoreSearchResults,
+    int? currentSearchPage,
     bool? isUploading,
     double? uploadProgress,
     String? uploadError,
@@ -124,72 +165,55 @@ class AppState extends Equatable {
     return AppState(
       currentUser: currentUser ?? this.currentUser,
       selectedUser: selectedUser ?? this.selectedUser,
-      searchedUsers: searchedUsers ?? this.searchedUsers,
       isLoadingUser: isLoadingUser ?? this.isLoadingUser,
-      userError: userError ?? this.userError,
+      userError: userError,
       feedPosts: feedPosts ?? this.feedPosts,
       userPosts: userPosts ?? this.userPosts,
       selectedPost: selectedPost ?? this.selectedPost,
-      searchedPosts: searchedPosts ?? this.searchedPosts,
       isLoadingPosts: isLoadingPosts ?? this.isLoadingPosts,
       hasMorePosts: hasMorePosts ?? this.hasMorePosts,
       currentFeedPage: currentFeedPage ?? this.currentFeedPage,
-      postError: postError ?? this.postError,
+      postError: postError,
+      shorts: shorts ?? this.shorts,
+      isLoadingShorts: isLoadingShorts ?? this.isLoadingShorts,
+      hasMoreShorts: hasMoreShorts ?? this.hasMoreShorts,
+      currentShortsPage: currentShortsPage ?? this.currentShortsPage,
+      shortsError: shortsError,
       comments: comments ?? this.comments,
       isLoadingComments: isLoadingComments ?? this.isLoadingComments,
       hasMoreComments: hasMoreComments ?? this.hasMoreComments,
       currentCommentsPage: currentCommentsPage ?? this.currentCommentsPage,
-      commentError: commentError ?? this.commentError,
+      commentError: commentError,
       stories: stories ?? this.stories,
       isLoadingStories: isLoadingStories ?? this.isLoadingStories,
-      storyError: storyError ?? this.storyError,
+      storyError: storyError,
       chats: chats ?? this.chats,
       messages: messages ?? this.messages,
       isLoadingChats: isLoadingChats ?? this.isLoadingChats,
       isLoadingMessages: isLoadingMessages ?? this.isLoadingMessages,
-      chatError: chatError ?? this.chatError,
-      isSearching: isSearching ?? this.isSearching,
+      chatError: chatError,
+      searchedUsers: searchedUsers ?? this.searchedUsers,
+      searchedPosts: searchedPosts ?? this.searchedPosts,
       searchQuery: searchQuery ?? this.searchQuery,
-      searchError: searchError ?? this.searchError,
+      isSearching: isSearching ?? this.isSearching,
+      searchError: searchError,
+      hasMoreSearchResults: hasMoreSearchResults ?? this.hasMoreSearchResults,
+      currentSearchPage: currentSearchPage ?? this.currentSearchPage,
       isUploading: isUploading ?? this.isUploading,
       uploadProgress: uploadProgress ?? this.uploadProgress,
-      uploadError: uploadError ?? this.uploadError,
+      uploadError: uploadError,
     );
   }
 
   @override
   List<Object?> get props => [
-        currentUser,
-        selectedUser,
-        searchedUsers,
-        isLoadingUser,
-        userError,
-        feedPosts,
-        userPosts,
-        selectedPost,
-        searchedPosts,
-        isLoadingPosts,
-        hasMorePosts,
-        currentFeedPage,
-        postError,
-        comments,
-        isLoadingComments,
-        hasMoreComments,
-        currentCommentsPage,
-        commentError,
-        stories,
-        isLoadingStories,
-        storyError,
-        chats,
-        messages,
-        isLoadingChats,
-        isLoadingMessages,
-        chatError,
-        isSearching,
-        searchQuery,
-        searchError,
-        isUploading,
-        uploadProgress,
-        uploadError,
-      ];
+    currentUser, selectedUser, isLoadingUser, userError,
+    feedPosts, userPosts, selectedPost, isLoadingPosts, hasMorePosts, currentFeedPage, postError,
+    shorts, isLoadingShorts, hasMoreShorts, currentShortsPage, shortsError,
+    comments, isLoadingComments, hasMoreComments, currentCommentsPage, commentError,
+    stories, isLoadingStories, storyError,
+    chats, messages, isLoadingChats, isLoadingMessages, chatError,
+    searchedUsers, searchedPosts, searchQuery, isSearching, searchError, hasMoreSearchResults, currentSearchPage,
+    isUploading, uploadProgress, uploadError,
+  ];
 }

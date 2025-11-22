@@ -21,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _rememberMe = false;
   bool _isLoading = true;
+  bool _isProcessingLogin = false;
 
   @override
   void initState() {
@@ -70,7 +71,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    // Prevent multiple submissions
+    if (_isProcessingLogin) return;
+
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter email/username and password'),
@@ -79,9 +84,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
-  
 
-    // Pass rememberMe to the event - BLoC will handle storage
+    setState(() => _isProcessingLogin = true);
+
     context.read<AuthBloc>().add(
       AuthLoginRequested(
         identifier: _emailController.text.trim(),
@@ -97,137 +102,157 @@ class _LoginScreenState extends State<LoginScreen> {
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
+            setState(() => _isProcessingLogin = false);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(state.message.replaceAll('Exception: ', '')),
                 backgroundColor: AppColors.error,
               ),
             );
           }
+          if (state is AuthLoading) {
+            // Keep processing state true
+          }
           if (state is AuthAuthenticated) {
-            Navigator.pushReplacementNamed(context, '/home');
+            setState(() => _isProcessingLogin = false);
+            // Use pushNamedAndRemoveUntil to clear the stack
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/home', (route) => false);
+          }
+          if (state is AuthUnauthenticated && _isProcessingLogin) {
+            // Reset processing state if auth failed
+            setState(() => _isProcessingLogin = false);
           }
         },
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 40,
-                  ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.1,
-                        ),
-                        Text(
-                          'Travel Diary',
-                          style: Theme.of(context).textTheme.displaySmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Share Your Travel Stories',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.08,
-                        ),
-                        CustomTextField(
-                          controller: _emailController,
-                          label: 'Email or Username',
-                          hint: 'Enter your email or username',
-                          prefixIcon: const Icon(Icons.email_outlined),
-                        ),
-                        const SizedBox(height: 24),
-                        CustomTextField(
-                          controller: _passwordController,
-                          label: 'Password',
-                          hint: 'Enter your password',
-                          obscureText: true,
-                          prefixIcon: const Icon(Icons.lock_outlined),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Password is required';
-                            }
-                            return null;
-                          },
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: _rememberMe,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _rememberMe = value ?? false;
-                                    });
-                                  },
+            : SafeArea(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 40,
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.08,
+                          ),
+                          Text(
+                            'Travel Diary',
+                            style: Theme.of(context).textTheme.displaySmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
                                 ),
-                                const Text('Remember Me'),
-                              ],
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/forgot-password',
-                                );
-                              },
-                              child: const Text('Forgot Password?'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-                        BlocBuilder<AuthBloc, AuthState>(
-                          builder: (context, state) {
-                            return CustomButton(
-                              text: 'Login',
-                              onPressed: _handleLogin,
-                              isLoading: state is AuthLoading,
-                              width: double.infinity,
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Don't have an account? ",
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const RegisterScreen(),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Share Your Travel Stories',
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.08,
+                          ),
+                          CustomTextField(
+                            controller: _emailController,
+                            label: 'Email or Username',
+                            hint: 'Enter your email or username',
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            keyboardType: TextInputType.emailAddress,
+                            // textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 24),
+                          CustomTextField(
+                            controller: _passwordController,
+                            label: 'Password',
+                            hint: 'Enter your password',
+                            obscureText: true,
+                            prefixIcon: const Icon(Icons.lock_outlined),
+                            // textInputAction: TextInputAction.done,
+                            // onSubmitted: (_) => _handleLogin(),
+                            // validator: (value) {
+                            //   if (value == null || value.isEmpty) {
+                            //     return 'Password is required';
+                            //   }
+                            //   return null;
+                            // },
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Checkbox(
+                                    value: _rememberMe,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _rememberMe = value ?? false;
+                                      });
+                                    },
                                   ),
-                                );
-                              },
-                              child: Text(
-                                'Sign Up',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  const Text('Remember Me'),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/forgot-password',
+                                  );
+                                },
+                                child: const Text('Forgot Password?'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+                          BlocBuilder<AuthBloc, AuthState>(
+                            builder: (context, state) {
+                              final isLoading =
+                                  state is AuthLoading || _isProcessingLogin;
+                              return CustomButton(
+                                text: 'Login',
+                                onPressed: isLoading ? null : _handleLogin,
+                                isLoading: isLoading,
+                                width: double.infinity,
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Don't have an account? ",
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const RegisterScreen(),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  'Sign Up',
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

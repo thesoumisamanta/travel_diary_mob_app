@@ -21,22 +21,24 @@ class ApiConstants {
   static const String following = '/follow/following'; // + /:userId
   static const String followStatus = '/follow/status'; // + /:userId
 
-  // Post endpoints
-  static const String post = '/post';
+   // Post endpoints
   static const String uploadPosts = '/posts/upload';
-  static const String searchPosts = '/posts/search';
-  static const String allPosts = '/posts/list';
-  static const String getFeed = '/posts/feed/following'; 
-  static const String userPost = '/posts/user'; // + /:userId
-  static const String likePost = '/posts'; // + /:postId/like
-  static const String dislikePost = '/posts'; // + /:postId/dislike
-
-
+  static const String userPost = '/posts';
+  static const String allPosts = '/posts/user';
+  static const String listPosts = '/posts/list';
+  static const String getFeed = '/posts/feed/following';
+  static const String likePost = '/posts';
+  static const String dislikePost = '/posts';
 
   // Comment endpoints
-  static const String commentPost = '/comments'; // + /:postId
-  static const String getComments = '/comments'; // + /:postId
-  static const String likeComment = '/comments/like'; // + /:commentId
+  static const String commentPost = '/comments';
+
+  // Search endpoints - NEW
+  static const String searchUsers = '/search/users';
+  static const String searchPosts = '/search/posts';
+  static const String searchAll = '/search/all';
+  static const String searchContent = '/search/all';
+  static const String getShorts = '/search/shorts';
 
 
   // Story endpoints
@@ -48,10 +50,6 @@ class ApiConstants {
   static const String chats = '/chats';
   static const String getChatHistory = '/chats/history'; // + /:chatId
   static const String sendMessage = '/chats/send';
-
-  // Search endpoints
-  static const String searchUsers = '/users/search';
-  static const String searchContent = '/search/content';
 
   // Media Upload
   static const String uploadMedia = '/upload/media';
