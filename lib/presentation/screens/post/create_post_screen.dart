@@ -12,7 +12,7 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({Key? key}) : super(key: key);
+  const CreatePostScreen({super.key});
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -41,9 +41,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           : await FileHelper.requestStoragePermission();
 
       if (!permission) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permission denied')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Permission denied')));
         return;
       }
 
@@ -101,7 +101,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         .where((tag) => tag.isNotEmpty)
         .toList();
 
-    // Caption is required as String, use empty string if not provided
     final caption = _captionController.text.isNotEmpty
         ? _captionController.text
         : '';
@@ -112,32 +111,57 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         : null;
 
     context.read<AppBloc>().add(
-          CreatePost(
-            mediaFiles: _selectedMedia,
-            caption: caption,
-            location: location,
-            tags: tags,
-            postType: _selectedPostType,
-          ),
-        );
+      CreatePost(
+        mediaFiles: _selectedMedia,
+        caption: caption,
+        location: location,
+        tags: tags,
+        postType: _selectedPostType,
+      ),
+    );
   }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-      ),
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
     );
+  }
+
+  Future<void> _pickShort() async {
+    try {
+      final permission = await FileHelper.requestCameraPermission();
+      if (!permission) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Permission denied')));
+        return;
+      }
+
+      final video = await _imagePicker.pickVideo(
+        source: ImageSource.gallery,
+        maxDuration: const Duration(seconds: 60), 
+      );
+
+      if (video != null) {
+        final file = File(video.path);
+        if (FileHelper.validateVideoSize(file)) {
+          setState(() {
+            _selectedMedia = [file];
+            _selectedPostType = 'short'; 
+          });
+        } else {
+          _showError('Video size exceeds limit (100MB)');
+        }
+      }
+    } catch (e) {
+      _showError('Error picking short: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Post'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Create Post'), centerTitle: true),
       body: BlocListener<AppBloc, AppState>(
         listener: (context, state) {
           if (state.uploadError != null) {
@@ -195,15 +219,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           children: [
                             CustomButton(
                               text: 'Photos',
-                              onPressed: () => _pickMedia(ImageSource.gallery, false),
-                              width: 120,
+                              onPressed: () =>
+                                  _pickMedia(ImageSource.gallery, false),
+                              width: 100,
                               height: 40,
                             ),
                             const SizedBox(width: 12),
                             CustomButton(
                               text: 'Videos',
-                              onPressed: () => _pickMedia(ImageSource.gallery, true),
-                              width: 120,
+                              onPressed: () =>
+                                  _pickMedia(ImageSource.gallery, true),
+                              width: 100,
+                              height: 40,
+                            ),
+                            const SizedBox(width: 12),
+                            CustomButton(
+                              text: 'Shorts',
+                              onPressed: () => _pickShort(),
+                              width: 100,
                               height: 40,
                             ),
                           ],
@@ -217,9 +250,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     children: [
                       Text(
                         'Selected Media (${_selectedMedia.length})',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
+                        style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 12),
@@ -236,17 +267,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                   padding: const EdgeInsets.only(right: 8),
                                   child: GestureDetector(
                                     onTap: () => _pickMedia(
-                                        ImageSource.gallery,
-                                        _selectedPostType ==
-                                            AppConstants.postTypeVideo),
+                                      ImageSource.gallery,
+                                      _selectedPostType ==
+                                          AppConstants.postTypeVideo,
+                                    ),
                                     child: Container(
                                       width: 100,
                                       decoration: BoxDecoration(
                                         border: Border.all(
                                           color: AppColors.border,
                                         ),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: const Icon(Icons.add),
                                     ),
@@ -263,13 +294,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                   Container(
                                     width: 100,
                                     decoration: BoxDecoration(
-                                      borderRadius:
-                                          BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(8),
                                       color: AppColors.shimmerBase,
                                     ),
                                     child: ClipRRect(
-                                      borderRadius:
-                                          BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(8),
                                       child: Image.file(
                                         _selectedMedia[index],
                                         fit: BoxFit.cover,
@@ -351,7 +380,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                             ],
                           ),
                         CustomButton(
-                          text: state.isUploading ? 'Uploading...' : 'Share Post',
+                          text: state.isUploading
+                              ? 'Uploading...'
+                              : 'Share Post',
                           onPressed: _handleCreatePost,
                           isLoading: state.isUploading,
                           width: double.infinity,

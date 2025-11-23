@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:travel_diary_mob_app/presentation/screens/home/widgets/video_post_player.dart';
+import 'package:video_player/video_player.dart';
 import 'package:travel_diary_mob_app/business_logic/app_bloc/app_state.dart';
 import 'package:travel_diary_mob_app/presentation/screens/post/post_details_screen.dart';
 import '../../../../business_logic/app_bloc/app_bloc.dart';
@@ -10,35 +12,96 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../widgets/loading_widget.dart';
 
-class PostCard extends StatelessWidget {
+class PostCard extends StatefulWidget {
   final PostModel post;
 
   const PostCard({super.key, required this.post});
+
+  @override
+  State<PostCard> createState() => _PostCardState();
+}
+
+class _PostCardState extends State<PostCard> {
+  VideoPlayerController? _videoController;
+  bool _isVideoInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideo();
+  }
+
+  void _initializeVideo() {
+    // Only initialize video for video posts
+    if (widget.post.isVideoPost && widget.post.primaryMediaUrl != null) {
+      _videoController =
+          VideoPlayerController.networkUrl(
+              Uri.parse(widget.post.primaryMediaUrl!),
+            )
+            ..initialize()
+                .then((_) {
+                  if (mounted) {
+                    setState(() {
+                      _isVideoInitialized = true;
+                    });
+                    // Auto-play video
+                    _videoController?.play();
+                    _videoController?.setLooping(true);
+                  }
+                })
+                .catchError((error) {
+                  debugPrint('Video initialization error: $error');
+                });
+
+      // Add listener for video progress
+      _videoController?.addListener(() {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  void _togglePlayPause() {
+    if (_videoController != null && _isVideoInitialized) {
+      setState(() {
+        if (_videoController!.value.isPlaying) {
+          _videoController!.pause();
+        } else {
+          _videoController!.play();
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AppBloc, AppState>(
       buildWhen: (previous, current) {
         final prevPost = previous.feedPosts.firstWhere(
-          (p) => p.id == post.id,
-          orElse: () => post,
+          (p) => p.id == widget.post.id,
+          orElse: () => widget.post,
         );
         final currPost = current.feedPosts.firstWhere(
-          (p) => p.id == post.id,
-          orElse: () => post,
+          (p) => p.id == widget.post.id,
+          orElse: () => widget.post,
         );
 
-        // Rebuild if like/dislike state or counts changed
         return prevPost.isLiked != currPost.isLiked ||
             prevPost.isDisliked != currPost.isDisliked ||
             prevPost.likesCount != currPost.likesCount ||
             prevPost.dislikesCount != currPost.dislikesCount;
       },
       builder: (context, state) {
-        // Get the updated post from state
         final updatedPost = state.feedPosts.firstWhere(
-          (p) => p.id == post.id,
-          orElse: () => post,
+          (p) => p.id == widget.post.id,
+          orElse: () => widget.post,
         );
 
         return Column(
@@ -46,38 +109,7 @@ class PostCard extends StatelessWidget {
           children: [
             if (updatedPost.media.isNotEmpty) ...[
               const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => PostDetailScreen(post: updatedPost),
-                    ),
-                  );
-                },
-                child: SizedBox(
-                  height: 300,
-                  width: double.infinity,
-                  child: updatedPost.media.length == 1
-                      ? CachedNetworkImage(
-                          imageUrl: updatedPost.media.first.url,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => const LoadingWidget(),
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.error),
-                        )
-                      : PageView.builder(
-                          itemCount: updatedPost.media.length,
-                          itemBuilder: (context, index) => CachedNetworkImage(
-                            imageUrl: updatedPost.media[index].url,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) =>
-                                const LoadingWidget(),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.error),
-                          ),
-                        ),
-                ),
-              ),
+              _buildMediaSection(updatedPost),
             ],
             Padding(
               padding: const EdgeInsets.all(12),
@@ -88,59 +120,64 @@ class PostCard extends StatelessWidget {
                     children: [
                       buildUserAvatar(updatedPost.author.profilePicture),
                       const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (updatedPost.caption != null)
-                            Text(
-                              updatedPost.caption!,
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          Row(
-                            children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (updatedPost.caption != null)
                               Text(
-                                updatedPost.author.fullName,
-                                style: TextStyle(
+                                updatedPost.caption!,
+                                style: const TextStyle(
                                   color: AppColors.textPrimary,
-                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(width: 6),
-                              if (updatedPost.author.isVerified) ...[
-                                const Icon(
-                                  Icons.verified,
-                                  size: 16,
-                                  color: AppColors.primary,
+                            Row(
+                              children: [
+                                Text(
+                                  updatedPost.author.fullName,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 12,
+                                  ),
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 6),
+                                if (updatedPost.author.isVerified) ...[
+                                  const Icon(
+                                    Icons.verified,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Container(
+                                  width: 4,
+                                  height: 4,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.border,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  DateFormatter.formatRelativeTime(
+                                    updatedPost.createdAt,
+                                  ),
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 10,
+                                  ),
+                                ),
                               ],
-                              Container(
-                                width: 4,
-                                height: 4,
-                                color: AppColors.border,
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                DateFormatter.formatRelativeTime(
-                                  updatedPost.createdAt,
-                                ),
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -149,7 +186,7 @@ class PostCard extends StatelessWidget {
                             GestureDetector(
                               onTap: () {
                                 context.read<AppBloc>().add(
-                                  LikePost(updatedPost.id, updatedPost.isLiked),
+                                  LikePost(updatedPost.id),
                                 );
                               },
                               child: Icon(
@@ -168,7 +205,6 @@ class PostCard extends StatelessWidget {
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             const SizedBox(width: 16),
-
                             GestureDetector(
                               onTap: () {
                                 context.read<AppBloc>().add(
@@ -191,8 +227,6 @@ class PostCard extends StatelessWidget {
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             const SizedBox(width: 16),
-
-                            // COMMENTS BUTTON
                             GestureDetector(
                               onTap: () {
                                 Navigator.of(context).push(
@@ -214,8 +248,6 @@ class PostCard extends StatelessWidget {
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             const SizedBox(width: 16),
-
-                            // SHARE BUTTON
                             GestureDetector(
                               onTap: () {
                                 // Share implementation
@@ -274,12 +306,126 @@ class PostCard extends StatelessWidget {
     );
   }
 
+  Widget _buildMediaSection(PostModel post) {
+    // Handle VIDEO posts
+    if (post.isVideoPost) {
+      // Handle VIDEO posts
+      if (post.isVideoPost) {
+        return VideoPostPlayer(
+          videoUrl: post.primaryMediaUrl ?? '',
+          autoPlay: true,
+        );
+
+        // return GestureDetector(
+        //   onTap: () {
+        //     Navigator.of(context).push(
+        //       MaterialPageRoute(
+        //         builder: (context) => PostDetailScreen(post: post),
+        //       ),
+        //     );
+        //   },
+        //   child: Stack(
+        //     children: [
+        //       Container(
+        //         height: 300,
+        //         width: double.infinity,
+        //         color: Colors.black,
+        //         child: _isVideoInitialized && _videoController != null
+        //             ? AspectRatio(
+        //                 aspectRatio: _videoController!.value.aspectRatio,
+        //                 child: VideoPlayer(_videoController!),
+        //               )
+        //             : const Center(
+        //                 child: CircularProgressIndicator(color: Colors.white),
+        //               ),
+        //       ),
+        //       // Video progress bar
+        //       if (_isVideoInitialized && _videoController != null)
+        //         Positioned(
+        //           bottom: 0,
+        //           left: 0,
+        //           right: 0,
+        //           child: VideoProgressIndicator(
+        //             _videoController!,
+        //             allowScrubbing: true,
+        //             padding: const EdgeInsets.all(0),
+        //             colors: const VideoProgressColors(
+        //               playedColor: AppColors.primary,
+        //               bufferedColor: Colors.grey,
+        //               backgroundColor: Colors.white24,
+        //             ),
+        //           ),
+        //         ),
+        //       // Play/Pause overlay (optional - for tap feedback)
+        //       if (_isVideoInitialized && _videoController != null)
+        //         Positioned.fill(
+        //           child: GestureDetector(
+        //             onTap: _togglePlayPause,
+        //             child: Container(
+        //               color: Colors.transparent,
+        //               child: Center(
+        //                 child: AnimatedOpacity(
+        //                   opacity: _videoController!.value.isPlaying ? 0.0 : 1.0,
+        //                   duration: const Duration(milliseconds: 200),
+        //                   child: Container(
+        //                     padding: const EdgeInsets.all(12),
+        //                     decoration: const BoxDecoration(
+        //                       color: Colors.black54,
+        //                       shape: BoxShape.circle,
+        //                     ),
+        //                     child: const Icon(
+        //                       Icons.play_arrow,
+        //                       color: Colors.white,
+        //                       size: 48,
+        //                     ),
+        //                   ),
+        //                 ),
+        //               ),
+        //             ),
+        //           ),
+        //         ),
+        //     ],
+        //   ),
+        // );
+      }
+    }
+
+    // Handle IMAGE posts (existing code)
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => PostDetailScreen(post: post)),
+        );
+      },
+      child: SizedBox(
+        height: 300,
+        width: double.infinity,
+        child: post.media.length == 1
+            ? CachedNetworkImage(
+                imageUrl: post.media.first.url,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => const LoadingWidget(),
+                errorWidget: (context, url, error) => const Icon(Icons.error),
+              )
+            : PageView.builder(
+                itemCount: post.media.length,
+                itemBuilder: (context, index) => CachedNetworkImage(
+                  imageUrl: post.media[index].url,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => const LoadingWidget(),
+                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                ),
+              ),
+      ),
+    );
+  }
+
   Widget buildUserAvatar(String? avatarUrl) {
     if (avatarUrl == null || avatarUrl.isEmpty) {
       return CircleAvatar(
         backgroundColor: AppColors.primary,
         child: Text(
-          post.author.username[0].toUpperCase(),
+          widget.post.author.username[0].toUpperCase(),
           style: const TextStyle(color: Colors.white),
         ),
       );
@@ -293,7 +439,7 @@ class PostCard extends StatelessWidget {
       errorWidget: (context, url, error) => CircleAvatar(
         backgroundColor: AppColors.primary,
         child: Text(
-          post.author.username[0].toUpperCase(),
+          widget.post.author.username[0].toUpperCase(),
           style: const TextStyle(color: Colors.white),
         ),
       ),

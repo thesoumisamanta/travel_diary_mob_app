@@ -3,19 +3,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:travel_diary_mob_app/presentation/screens/post/widgets/comment_item.dart';
 import '../../../business_logic/app_bloc/app_bloc.dart';
 import '../../../business_logic/app_bloc/app_event.dart';
 import '../../../business_logic/app_bloc/app_state.dart';
 import '../../../data/models/post_model.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/date_formatter.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/loading_widget.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final PostModel post;
 
-  const PostDetailScreen({Key? key, required this.post}) : super(key: key);
+  const PostDetailScreen({super.key, required this.post});
 
   @override
   State<PostDetailScreen> createState() => _PostDetailScreenState();
@@ -33,7 +33,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
     _tabController = TabController(length: 2, vsync: this);
     _commentController = TextEditingController();
     context.read<AppBloc>().add(LoadPostDetails(widget.post.id));
-    context.read<AppBloc>().add(LoadComments(widget.post.id));
+    context.read<AppBloc>().add(LoadComments(widget.post.id, refresh: true));
   }
 
   @override
@@ -75,8 +75,9 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                         height: 400,
                         child: PhotoViewGallery.builder(
                           itemCount: post.media.length,
-                          pageController:
-                              PageController(initialPage: _currentMediaIndex),
+                          pageController: PageController(
+                            initialPage: _currentMediaIndex,
+                          ),
                           onPageChanged: (index) {
                             setState(() => _currentMediaIndex = index);
                           },
@@ -85,10 +86,8 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                               imageProvider: CachedNetworkImageProvider(
                                 post.media[index].url,
                               ),
-                              minScale:
-                                  PhotoViewComputedScale.contained * 0.8,
-                              maxScale:
-                                  PhotoViewComputedScale.covered * 1.8,
+                              minScale: PhotoViewComputedScale.contained * 0.8,
+                              maxScale: PhotoViewComputedScale.covered * 1.8,
                             );
                           },
                         ),
@@ -103,24 +102,20 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                             children: [
                               CircleAvatar(
                                 radius: 28,
-                                backgroundImage: post
-                                        .author.profilePicture !=
-                                    null
-                                    ? CachedNetworkImageProvider(
-                                        post.author
-                                            .profilePicture!)
-                                    : null,
-                                child: post.author
-                                            .profilePicture ==
+                                backgroundImage: post.author.profilePicture !=
                                         null
+                                    ? CachedNetworkImageProvider(
+                                        post.author.profilePicture!,
+                                      )
+                                    : null,
+                                child: post.author.profilePicture == null
                                     ? const Icon(Icons.person)
                                     : null,
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
                                       children: [
@@ -130,8 +125,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                                               .textTheme
                                               .titleMedium
                                               ?.copyWith(
-                                                fontWeight:
-                                                    FontWeight.w600,
+                                                fontWeight: FontWeight.w600,
                                               ),
                                         ),
                                         if (post.author.isVerified) ...[
@@ -139,8 +133,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                                           const Icon(
                                             Icons.verified,
                                             size: 16,
-                                            color: AppColors
-                                                .primary,
+                                            color: AppColors.primary,
                                           ),
                                         ],
                                       ],
@@ -148,11 +141,9 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                                     Text(
                                       post.author.bio ?? '',
                                       maxLines: 1,
-                                      overflow:
-                                          TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall,
+                                      overflow: TextOverflow.ellipsis,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
                                   ],
                                 ),
@@ -173,9 +164,7 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                           if (post.caption != null)
                             Text(
                               post.caption!,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium,
+                              style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           if (post.location != null) ...[
                             const SizedBox(height: 12),
@@ -184,15 +173,12 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                                 const Icon(
                                   Icons.location_on,
                                   size: 16,
-                                  color: AppColors
-                                      .textSecondary,
+                                  color: AppColors.textSecondary,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   post.location!,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
                             ),
@@ -205,35 +191,23 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                               children: post.tags
                                   .map(
                                     (tag) => Container(
-                                      padding:
-                                          const EdgeInsets
-                                              .symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                      decoration:
-                                          BoxDecoration(
-                                        color: AppColors
-                                            .primary
-                                            .withOpacity(
-                                                0.1),
-                                        borderRadius:
-                                            BorderRadius
-                                                .circular(
-                                                    16),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary
+                                            .withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: Text(
                                         '#$tag',
-                                        style: Theme.of(
-                                                context)
+                                        style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
                                             ?.copyWith(
-                                              color: AppColors
-                                                  .primary,
-                                              fontWeight:
-                                                  FontWeight
-                                                      .w500,
+                                              color: AppColors.primary,
+                                              fontWeight: FontWeight.w500,
                                             ),
                                       ),
                                     ),
@@ -249,24 +223,18 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                                 child: Column(
                                   children: [
                                     Text(
-                                      post.likesCount
-                                          .toString(),
-                                      style: Theme.of(
-                                              context)
+                                      post.likesCount.toString(),
+                                      style: Theme.of(context)
                                           .textTheme
                                           .titleMedium
                                           ?.copyWith(
-                                            fontWeight:
-                                                FontWeight
-                                                    .bold,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                     ),
                                     Text(
                                       'Likes',
-                                      style: Theme.of(
-                                              context)
-                                          .textTheme
-                                          .bodySmall,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
                                   ],
                                 ),
@@ -275,24 +243,18 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                                 child: Column(
                                   children: [
                                     Text(
-                                      post.commentsCount
-                                          .toString(),
-                                      style: Theme.of(
-                                              context)
+                                      post.commentsCount.toString(),
+                                      style: Theme.of(context)
                                           .textTheme
                                           .titleMedium
                                           ?.copyWith(
-                                            fontWeight:
-                                                FontWeight
-                                                    .bold,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                     ),
                                     Text(
                                       'Comments',
-                                      style: Theme.of(
-                                              context)
-                                          .textTheme
-                                          .bodySmall,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
                                   ],
                                 ),
@@ -301,24 +263,18 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                                 child: Column(
                                   children: [
                                     Text(
-                                      post.sharesCount
-                                          .toString(),
-                                      style: Theme.of(
-                                              context)
+                                      post.sharesCount.toString(),
+                                      style: Theme.of(context)
                                           .textTheme
                                           .titleMedium
                                           ?.copyWith(
-                                            fontWeight:
-                                                FontWeight
-                                                    .bold,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                     ),
                                     Text(
                                       'Shares',
-                                      style: Theme.of(
-                                              context)
-                                          .textTheme
-                                          .bodySmall,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
                                   ],
                                 ),
@@ -331,18 +287,34 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                   ],
                 ),
               ),
-              // Comments Section
+              // Comments Section Header
               SliverAppBar(
                 pinned: true,
                 automaticallyImplyLeading: false,
-                title: const Text('Comments'),
+                title: Text('Comments (${state.comments.length})'),
                 centerTitle: false,
               ),
-              if (state.isLoadingComments)
+              // Comments List
+              if (state.isLoadingComments && state.comments.isEmpty)
                 const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.all(16),
-                    child: LoadingWidget(),
+                    child: Center(child: LoadingWidget()),
+                  ),
+                )
+              else if (state.comments.isEmpty)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(
+                      child: Text(
+                        'No comments yet. Be the first to comment!',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
                   ),
                 )
               else
@@ -350,117 +322,60 @@ class _PostDetailScreenState extends State<PostDetailScreen>
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final comment = state.comments[index];
-                      return Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundImage: comment
-                                          .author
-                                          .profilePicture !=
-                                      null
-                                      ? CachedNetworkImageProvider(
-                                          comment.author
-                                              .profilePicture!)
-                                      : null,
-                                  child: comment
-                                              .author
-                                              .profilePicture ==
-                                          null
-                                      ? const Icon(
-                                          Icons.person,
-                                          size: 12,
-                                        )
-                                      : null,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment
-                                            .start,
-                                    children: [
-                                      Text(
-                                        comment.author
-                                            .username,
-                                        style: Theme.of(
-                                                context)
-                                            .textTheme
-                                            .titleSmall
-                                            ?.copyWith(
-                                              fontWeight:
-                                                  FontWeight
-                                                      .w600,
-                                            ),
-                                      ),
-                                      Text(
-                                        DateFormatter
-                                            .formatRelativeTime(
-                                          comment
-                                              .createdAt,
-                                        ),
-                                        style: Theme.of(
-                                                context)
-                                            .textTheme
-                                            .bodySmall,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              comment.content,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium,
-                            ),
-                          ],
-                        ),
+                      return CommentItem(
+                        comment: comment,
+                        onReply: () {
+                          // You can implement reply functionality here
+                          // For now, just focus cursor on input
+                          FocusScope.of(context).requestFocus();
+                        },
                       );
                     },
                     childCount: state.comments.length,
                   ),
                 ),
+              // Add Comment Input
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: CustomTextField(
-                          controller:
-                              _commentController,
-                          hint: 'Add a comment...',
-                          maxLines: 1,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: _handleAddComment,
-                        child: Container(
-                          padding:
-                              const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius:
-                                BorderRadius.circular(
-                                    8),
-                          ),
-                          child: const Icon(
-                            Icons.send,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -5),
                       ),
                     ],
+                  ),
+                  child: SafeArea(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: CustomTextField(
+                            controller: _commentController,
+                            hint: 'Add a comment...',
+                            maxLines: 1,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _handleAddComment,
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.send,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

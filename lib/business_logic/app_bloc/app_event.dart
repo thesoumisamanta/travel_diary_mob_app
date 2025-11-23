@@ -58,8 +58,7 @@ class CreatePost extends AppEvent {
 
 class LikePost extends AppEvent {
   final String postId;
-  final bool currentlyLiked;
-  LikePost(this.postId, [this.currentlyLiked = false]);
+  LikePost(this.postId);
 }
 
 class DislikePost extends AppEvent {
@@ -77,18 +76,64 @@ class LoadShorts extends AppEvent {
 class LoadComments extends AppEvent {
   final String postId;
   final bool refresh;
-  LoadComments(this.postId, {this.refresh = false});
+
+   LoadComments(this.postId, {this.refresh = false});
+
+  @override
+  List<Object?> get props => [postId, refresh];
 }
 
+// Add a comment
 class AddComment extends AppEvent {
   final String postId;
   final String content;
-  AddComment(this.postId, this.content);
+  final String? parentId;
+
+   AddComment(this.postId, this.content, {this.parentId});
+
+  @override
+  List<Object?> get props => [postId, content, parentId];
 }
 
+// Delete comment
 class DeleteComment extends AppEvent {
   final String commentId;
-  DeleteComment(this.commentId);
+
+   DeleteComment(this.commentId);
+
+  @override
+  List<Object?> get props => [commentId];
+}
+
+// Like comment
+class LikeComment extends AppEvent {
+  final String commentId;
+
+   LikeComment(this.commentId);
+
+  @override
+  List<Object?> get props => [commentId];
+}
+
+// Dislike comment
+class DislikeComment extends AppEvent {
+  final String commentId;
+
+   DislikeComment(this.commentId);
+
+  @override
+  List<Object?> get props => [commentId];
+}
+
+// Load replies for a comment
+class LoadCommentReplies extends AppEvent {
+  final String commentId;
+  final bool refresh;
+
+   LoadCommentReplies(this.commentId, {this.refresh = false});
+
+  @override
+  List<Object?> get props => [commentId, refresh];
 }
 
 // ==================== STORY EVENTS ====================

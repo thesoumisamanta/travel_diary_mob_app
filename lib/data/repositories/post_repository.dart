@@ -37,7 +37,11 @@ class PostRepository {
     }
   }
 
-  Future<List<PostModel>> getUserPosts(String userId, int page, {PostType? filterType}) async {
+  Future<List<PostModel>> getUserPosts(
+    String userId,
+    int page, {
+    PostType? filterType,
+  }) async {
     final response = await _apiService.getUserPosts(
       userId,
       page,
@@ -86,7 +90,12 @@ class PostRepository {
         };
       }
 
-      return {'likesCount': 0, 'dislikesCount': 0, 'isLiked': false, 'isDisliked': false};
+      return {
+        'likesCount': 0,
+        'dislikesCount': 0,
+        'isLiked': false,
+        'isDisliked': false,
+      };
     } catch (e) {
       rethrow;
     }
@@ -109,14 +118,23 @@ class PostRepository {
         };
       }
 
-      return {'likesCount': 0, 'dislikesCount': 0, 'isLiked': false, 'isDisliked': false};
+      return {
+        'likesCount': 0,
+        'dislikesCount': 0,
+        'isLiked': false,
+        'isDisliked': false,
+      };
     } catch (e) {
       rethrow;
     }
   }
 
   // Search Posts
-  Future<List<PostModel>> searchPosts(String query, int page, {PostType? filterType}) async {
+  Future<List<PostModel>> searchPosts(
+    String query,
+    int page, {
+    PostType? filterType,
+  }) async {
     final response = await _apiService.searchPosts(
       query,
       page,
@@ -134,36 +152,95 @@ class PostRepository {
 
   // Get Shorts
   // Get Shorts
-Future<List<PostModel>> getShorts(int page) async {
-  final response = await _apiService.getShorts(page);  // Call getShorts, not searchShorts
+  Future<List<PostModel>> getShorts(int page) async {
+    final response = await _apiService.getShorts(
+      page,
+    ); // Call getShorts, not searchShorts
 
-  if (response.success && response.data != null) {
-    final List<dynamic> data = response.data is List
-        ? response.data
-        : (response.data['data'] ?? []);
-    return data.map((json) => PostModel.fromJson(json)).toList();
+    if (response.success && response.data != null) {
+      final List<dynamic> data = response.data is List
+          ? response.data
+          : (response.data['data'] ?? []);
+      return data.map((json) => PostModel.fromJson(json)).toList();
+    }
+    throw Exception(response.message ?? 'Failed to load shorts');
   }
-  throw Exception(response.message ?? 'Failed to load shorts');
-}
 
+  // Comments
   // Comments
   Future<List<CommentModel>> getPostComments(String postId, int page) async {
     final response = await _apiService.getPostComments(postId, page);
 
     if (response.success && response.data != null) {
-      final List<dynamic> data = response.data as List<dynamic>;
+      final List<dynamic> data = response.data is List
+          ? response.data
+          : (response.data['data'] ?? response.data);
       return data.map((json) => CommentModel.fromJson(json)).toList();
     }
     throw Exception(response.message ?? 'Failed to load comments');
   }
 
-  Future<CommentModel> addComment(String postId, String content) async {
-    final response = await _apiService.addComment(postId, content);
+  Future<List<CommentModel>> getCommentReplies(
+    String commentId,
+    int page,
+  ) async {
+    final response = await _apiService.getCommentReplies(commentId, page);
 
     if (response.success && response.data != null) {
-      return CommentModel.fromJson(response.data);
+      final List<dynamic> data = response.data is List
+          ? response.data
+          : (response.data['data'] ?? response.data);
+      return data.map((json) => CommentModel.fromJson(json)).toList();
+    }
+    throw Exception(response.message ?? 'Failed to load replies');
+  }
+
+  Future<CommentModel> addComment(
+    String postId,
+    String content, {
+    String? parentId,
+  }) async {
+    final response = await _apiService.addComment(
+      postId,
+      content,
+      parentId: parentId,
+    );
+
+    if (response.success && response.data != null) {
+      final data = response.data is Map ? response.data : response.data['data'];
+      return CommentModel.fromJson(data);
     }
     throw Exception(response.message ?? 'Failed to add comment');
+  }
+
+  Future<Map<String, dynamic>> likeComment(String commentId) async {
+    final response = await _apiService.likeComment(commentId);
+
+    if (response.success && response.data != null) {
+      final data = response.data is Map ? response.data : response.data['data'];
+      return {
+        'likesCount': data['likes'] ?? 0,
+        'dislikesCount': data['dislikes'] ?? 0,
+        'isLiked': data['isLiked'] ?? false,
+        'isDisliked': data['isDisliked'] ?? false,
+      };
+    }
+    throw Exception(response.message ?? 'Failed to like comment');
+  }
+
+  Future<Map<String, dynamic>> dislikeComment(String commentId) async {
+    final response = await _apiService.dislikeComment(commentId);
+
+    if (response.success && response.data != null) {
+      final data = response.data is Map ? response.data : response.data['data'];
+      return {
+        'likesCount': data['likes'] ?? 0,
+        'dislikesCount': data['dislikes'] ?? 0,
+        'isLiked': data['isLiked'] ?? false,
+        'isDisliked': data['isDisliked'] ?? false,
+      };
+    }
+    throw Exception(response.message ?? 'Failed to dislike comment');
   }
 
   Future<void> deleteComment(String commentId) async {

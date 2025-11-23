@@ -28,12 +28,17 @@ class AppState extends Equatable {
   final int currentShortsPage;
   final String? shortsError;
 
-  // Comment State
   final List<CommentModel> comments;
   final bool isLoadingComments;
-  final bool hasMoreComments;
   final int currentCommentsPage;
+  final bool hasMoreComments;
   final String? commentError;
+
+  // Replies
+  final Map<String, List<CommentModel>> replies;
+  final bool isLoadingReplies;
+  final int currentRepliesPage;
+  final String? repliesError;
 
   // Story State
   final List<StoryGroupModel> stories;
@@ -84,9 +89,13 @@ class AppState extends Equatable {
     // Comments
     this.comments = const [],
     this.isLoadingComments = false,
-    this.hasMoreComments = true,
     this.currentCommentsPage = 1,
+    this.hasMoreComments = true,
     this.commentError,
+    this.replies = const {},
+    this.isLoadingReplies = false,
+    this.currentRepliesPage = 1,
+    this.repliesError,
     // Stories
     this.stories = const [],
     this.isLoadingStories = false,
@@ -112,14 +121,20 @@ class AppState extends Equatable {
   });
 
   // Helper getters for filtered posts
-  List<PostModel> get imagePosts => feedPosts.where((p) => p.isImagePost).toList();
-  List<PostModel> get videoPosts => feedPosts.where((p) => p.isVideoPost).toList();
-  List<PostModel> get shortPosts => feedPosts.where((p) => p.isShortPost).toList();
+  List<PostModel> get imagePosts =>
+      feedPosts.where((p) => p.isImagePost).toList();
+  List<PostModel> get videoPosts =>
+      feedPosts.where((p) => p.isVideoPost).toList();
+  List<PostModel> get shortPosts =>
+      feedPosts.where((p) => p.isShortPost).toList();
 
   // Helper getters for searched filtered posts
-  List<PostModel> get searchedImagePosts => searchedPosts.where((p) => p.isImagePost).toList();
-  List<PostModel> get searchedVideoPosts => searchedPosts.where((p) => p.isVideoPost).toList();
-  List<PostModel> get searchedShortPosts => searchedPosts.where((p) => p.isShortPost).toList();
+  List<PostModel> get searchedImagePosts =>
+      searchedPosts.where((p) => p.isImagePost).toList();
+  List<PostModel> get searchedVideoPosts =>
+      searchedPosts.where((p) => p.isVideoPost).toList();
+  List<PostModel> get searchedShortPosts =>
+      searchedPosts.where((p) => p.isShortPost).toList();
 
   AppState copyWith({
     UserModel? currentUser,
@@ -140,9 +155,13 @@ class AppState extends Equatable {
     String? shortsError,
     List<CommentModel>? comments,
     bool? isLoadingComments,
-    bool? hasMoreComments,
     int? currentCommentsPage,
+    bool? hasMoreComments,
     String? commentError,
+    Map<String, List<CommentModel>>? replies,
+    bool? isLoadingReplies,
+    int? currentRepliesPage,
+    String? repliesError,
     List<StoryGroupModel>? stories,
     bool? isLoadingStories,
     String? storyError,
@@ -181,9 +200,13 @@ class AppState extends Equatable {
       shortsError: shortsError,
       comments: comments ?? this.comments,
       isLoadingComments: isLoadingComments ?? this.isLoadingComments,
-      hasMoreComments: hasMoreComments ?? this.hasMoreComments,
       currentCommentsPage: currentCommentsPage ?? this.currentCommentsPage,
+      hasMoreComments: hasMoreComments ?? this.hasMoreComments,
       commentError: commentError,
+      replies: replies ?? this.replies,
+      isLoadingReplies: isLoadingReplies ?? this.isLoadingReplies,
+      currentRepliesPage: currentRepliesPage ?? this.currentRepliesPage,
+      repliesError: repliesError,
       stories: stories ?? this.stories,
       isLoadingStories: isLoadingStories ?? this.isLoadingStories,
       storyError: storyError,
@@ -207,13 +230,48 @@ class AppState extends Equatable {
 
   @override
   List<Object?> get props => [
-    currentUser, selectedUser, isLoadingUser, userError,
-    feedPosts, userPosts, selectedPost, isLoadingPosts, hasMorePosts, currentFeedPage, postError,
-    shorts, isLoadingShorts, hasMoreShorts, currentShortsPage, shortsError,
-    comments, isLoadingComments, hasMoreComments, currentCommentsPage, commentError,
-    stories, isLoadingStories, storyError,
-    chats, messages, isLoadingChats, isLoadingMessages, chatError,
-    searchedUsers, searchedPosts, searchQuery, isSearching, searchError, hasMoreSearchResults, currentSearchPage,
-    isUploading, uploadProgress, uploadError,
+    currentUser,
+    selectedUser,
+    isLoadingUser,
+    userError,
+    feedPosts,
+    userPosts,
+    selectedPost,
+    isLoadingPosts,
+    hasMorePosts,
+    currentFeedPage,
+    postError,
+    shorts,
+    isLoadingShorts,
+    hasMoreShorts,
+    currentShortsPage,
+    shortsError,
+    comments,
+    isLoadingComments,
+    currentCommentsPage,
+    hasMoreComments,
+    commentError,
+    replies,
+    isLoadingReplies,
+    currentRepliesPage,
+    repliesError,
+    stories,
+    isLoadingStories,
+    storyError,
+    chats,
+    messages,
+    isLoadingChats,
+    isLoadingMessages,
+    chatError,
+    searchedUsers,
+    searchedPosts,
+    searchQuery,
+    isSearching,
+    searchError,
+    hasMoreSearchResults,
+    currentSearchPage,
+    isUploading,
+    uploadProgress,
+    uploadError,
   ];
 }

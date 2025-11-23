@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:travel_diary_mob_app/data/models/comment_model.dart';
 import '../../data/models/chat_model.dart';
 import '../../data/models/post_model.dart';
 import '../../data/repositories/user_repository.dart';
@@ -34,6 +35,8 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     on<LoadComments>(_onLoadComments);
     on<AddComment>(_onAddComment);
     on<DeleteComment>(_onDeleteComment);
+    on<LikeComment>(_onLikeComment);
+    on<DislikeComment>(_onDislikeComment);
     on<LoadStories>(_onLoadStories);
     on<CreateStory>(_onCreateStory);
     on<ViewStory>(_onViewStory);
@@ -454,76 +457,254 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     }
   }
 
-  Future<void> _onLoadComments(
-    LoadComments event,
-    Emitter<AppState> emit,
-  ) async {
-    if (event.refresh) {
-      emit(
-        state.copyWith(
-          isLoadingComments: true,
-          currentCommentsPage: 1,
-          commentError: null,
-          comments: [],
-        ),
-      );
-    } else if (!state.hasMoreComments || state.isLoadingComments) {
-      return;
-    } else {
-      emit(state.copyWith(isLoadingComments: true, commentError: null));
-    }
-
-    try {
-      final comments = await postRepository.getPostComments(
-        event.postId,
-        event.refresh ? 1 : state.currentCommentsPage,
-      );
-      emit(
-        state.copyWith(
-          comments: event.refresh ? comments : [...state.comments, ...comments],
-          isLoadingComments: false,
-          hasMoreComments: comments.isNotEmpty,
-          currentCommentsPage: event.refresh
-              ? 2
-              : state.currentCommentsPage + 1,
-        ),
-      );
-    } catch (e) {
-      emit(
-        state.copyWith(isLoadingComments: false, commentError: e.toString()),
-      );
-    }
+  Future<void> _onLoadComments(LoadComments event, Emitter<AppState> emit) async {
+  if (event.refresh) {
+    emit(state.copyWith(
+      isLoadingComments: true,
+      currentCommentsPage: 1,
+      commentError: null,
+      comments: [],
+    ));
+  } else if (!state.hasMoreComments || state.isLoadingComments) {
+    return;
+  } else {
+    emit(state.copyWith(isLoadingComments: true, commentError: null));
   }
 
-  Future<void> _onAddComment(AddComment event, Emitter<AppState> emit) async {
-    try {
-      final comment = await postRepository.addComment(
-        event.postId,
-        event.content,
-      );
+  try {
+    final comments = await postRepository.getPostComments(
+      event.postId,
+      event.refresh ? 1 : state.currentCommentsPage,
+    );
+    
+    emit(state.copyWith(
+      comments: event.refresh ? comments : [...state.comments, ...comments],
+      isLoadingComments: false,
+      hasMoreComments: comments.isNotEmpty,
+      currentCommentsPage: event.refresh ? 2 : state.currentCommentsPage + 1,
+    ));
+  } catch (e) {
+    emit(state.copyWith(
+      isLoadingComments: false,
+      commentError: e.toString(),
+    ));
+  }
+}
+
+Future<void> _onAddComment(AddComment event, Emitter<AppState> emit) async {
+  try {
+    final comment = await postRepository.addComment(
+      event.postId,
+      event.content,
+      parentId: event.parentId,
+    );
+    
+    if (event.parentId == null) {
+      // It's a top-level comment
       emit(state.copyWith(comments: [comment, ...state.comments]));
-    } catch (e) {
-      emit(state.copyWith(commentError: e.toString()));
+      
+      // Update comment count in feedPosts
+      final updatedFeedPosts = state.feedPosts.map((post) {
+        if (post.id == event.postId) {
+          return post.copyWith(commentsCount: post.commentsCount + 1);
+        }
+        return post;
+      }).toList();
+      
+      // Update comment count in selectedPost if it matches
+      final updatedSelectedPost = state.selectedPost?.id == event.postId
+          ? state.selectedPost?.copyWith(
+              commentsCount: (state.selectedPost?.commentsCount ?? 0) + 1,
+            )
+          : state.selectedPost;
+      
+      emit(state.copyWith(
+        feedPosts: updatedFeedPosts,
+        selectedPost: updatedSelectedPost,
+      ));
+    } else {
+      // It's a reply
+      final updatedReplies = Map<String, List<CommentModel>>.from(state.replies);
+      final currentReplies = updatedReplies[event.parentId] ?? [];
+      updatedReplies[event.parentId!] = [...currentReplies, comment];
+      
+      // Also update the parent comment's reply count
+      final updatedComments = state.comments.map((c) {
+        if (c.id == event.parentId) {
+          return c.copyWith(replyCount: c.replyCount + 1);
+        }
+        return c;
+      }).toList();
+      
+      emit(state.copyWith(
+        replies: updatedReplies,
+        comments: updatedComments,
+      ));
     }
+  } catch (e) {
+    emit(state.copyWith(commentError: e.toString()));
+  }
+}
+
+Future<void> _onDeleteComment(DeleteComment event, Emitter<AppState> emit) async {
+  try {
+    await postRepository.deleteComment(event.commentId);
+    
+    // Find which post this comment belongs to
+    final deletedComment = state.comments.firstWhere(
+      (c) => c.id == event.commentId,
+      orElse: () => state.comments.first, // Fallback
+    );
+    
+    // Remove from comments list
+    final updatedComments = state.comments
+        .where((c) => c.id != event.commentId)
+        .toList();
+    
+    // Remove from replies
+    final updatedReplies = Map<String, List<CommentModel>>.from(state.replies);
+    for (var key in updatedReplies.keys) {
+      updatedReplies[key] = updatedReplies[key]!
+          .where((r) => r.id != event.commentId)
+          .toList();
+    }
+    
+    // Update comment count in feedPosts (decrease by 1)
+    final updatedFeedPosts = state.feedPosts.map((post) {
+      // You'll need to track which post the comment belongs to
+      // For now, we can update all posts or track it differently
+      return post;
+    }).toList();
+    
+    emit(state.copyWith(
+      comments: updatedComments,
+      replies: updatedReplies,
+      feedPosts: updatedFeedPosts,
+    ));
+  } catch (e) {
+    emit(state.copyWith(commentError: e.toString()));
+  }
+}
+
+Future<void> _onLikeComment(LikeComment event, Emitter<AppState> emit) async {
+  try {
+    final backendData = await postRepository.likeComment(event.commentId);
+    
+    // Update in main comments
+    final updatedComments = state.comments.map((comment) {
+      if (comment.id == event.commentId) {
+        return comment.copyWith(
+          isLiked: backendData['isLiked'],
+          isDisliked: backendData['isDisliked'],
+          likesCount: backendData['likesCount'],
+          dislikesCount: backendData['dislikesCount'],
+        );
+      }
+      return comment;
+    }).toList();
+
+    // Update in replies
+    final updatedReplies = Map<String, List<CommentModel>>.from(state.replies);
+    for (var key in updatedReplies.keys) {
+      updatedReplies[key] = updatedReplies[key]!.map((reply) {
+        if (reply.id == event.commentId) {
+          return reply.copyWith(
+            isLiked: backendData['isLiked'],
+            isDisliked: backendData['isDisliked'],
+            likesCount: backendData['likesCount'],
+            dislikesCount: backendData['dislikesCount'],
+          );
+        }
+        return reply;
+      }).toList();
+    }
+
+    emit(state.copyWith(
+      comments: updatedComments,
+      replies: updatedReplies,
+    ));
+  } catch (e) {
+    emit(state.copyWith(commentError: e.toString()));
+  }
+}
+
+Future<void> _onDislikeComment(DislikeComment event, Emitter<AppState> emit) async {
+  try {
+    final backendData = await postRepository.dislikeComment(event.commentId);
+    
+    // Update in main comments
+    final updatedComments = state.comments.map((comment) {
+      if (comment.id == event.commentId) {
+        return comment.copyWith(
+          isLiked: backendData['isLiked'],
+          isDisliked: backendData['isDisliked'],
+          likesCount: backendData['likesCount'],
+          dislikesCount: backendData['dislikesCount'],
+        );
+      }
+      return comment;
+    }).toList();
+
+    // Update in replies
+    final updatedReplies = Map<String, List<CommentModel>>.from(state.replies);
+    for (var key in updatedReplies.keys) {
+      updatedReplies[key] = updatedReplies[key]!.map((reply) {
+        if (reply.id == event.commentId) {
+          return reply.copyWith(
+            isLiked: backendData['isLiked'],
+            isDisliked: backendData['isDisliked'],
+            likesCount: backendData['likesCount'],
+            dislikesCount: backendData['dislikesCount'],
+          );
+        }
+        return reply;
+      }).toList();
+    }
+
+    emit(state.copyWith(
+      comments: updatedComments,
+      replies: updatedReplies,
+    ));
+  } catch (e) {
+    emit(state.copyWith(commentError: e.toString()));
+  }
+}
+
+Future<void> _onLoadCommentReplies(LoadCommentReplies event, Emitter<AppState> emit) async {
+  if (event.refresh) {
+    emit(state.copyWith(
+      isLoadingReplies: true,
+      currentRepliesPage: 1,
+      repliesError: null,
+    ));
+  } else if (state.isLoadingReplies) {
+    return;
+  } else {
+    emit(state.copyWith(isLoadingReplies: true, repliesError: null));
   }
 
-  Future<void> _onDeleteComment(
-    DeleteComment event,
-    Emitter<AppState> emit,
-  ) async {
-    try {
-      await postRepository.deleteComment(event.commentId);
-      emit(
-        state.copyWith(
-          comments: state.comments
-              .where((c) => c.id != event.commentId)
-              .toList(),
-        ),
-      );
-    } catch (e) {
-      emit(state.copyWith(commentError: e.toString()));
-    }
+  try {
+    final page = event.refresh ? 1 : state.currentRepliesPage;
+    final replies = await postRepository.getCommentReplies(event.commentId, page);
+    
+    final currentReplies = state.replies[event.commentId] ?? [];
+    final updatedReplies = Map<String, List<CommentModel>>.from(state.replies);
+    updatedReplies[event.commentId] = event.refresh 
+        ? replies 
+        : [...currentReplies, ...replies];
+
+    emit(state.copyWith(
+      replies: updatedReplies,
+      isLoadingReplies: false,
+      currentRepliesPage: event.refresh ? 2 : state.currentRepliesPage + 1,
+    ));
+  } catch (e) {
+    emit(state.copyWith(
+      isLoadingReplies: false,
+      repliesError: e.toString(),
+    ));
   }
+}
 
   Future<void> _onLoadStories(LoadStories event, Emitter<AppState> emit) async {
     emit(state.copyWith(isLoadingStories: true, storyError: null));
@@ -593,8 +774,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   Future<void> _onSendMessage(SendMessage event, Emitter<AppState> emit) async {
     try {
       String? mediaUrl;
-      if (event.mediaFile != null)
+      if (event.mediaFile != null) {
         mediaUrl = await postRepository.uploadMedia(event.mediaFile!);
+      }
       final messageData = {
         'receiver_id': event.receiverId,
         'content': event.content,
