@@ -12,7 +12,8 @@ class ApiService {
 
   void setupTokenCallbacks({
     required Future<String?> Function() getRefreshToken,
-    required Future<void> Function(String accessToken, String refreshToken) onTokensRefreshed,
+    required Future<void> Function(String accessToken, String refreshToken)
+    onTokensRefreshed,
     required Future<void> Function() onRefreshFailed,
   }) {
     _apiClient.setTokenCallbacks(
@@ -57,23 +58,32 @@ class ApiService {
   }
 
   Future<ApiResponse> getUserChannel(String username) async {
-    final response = await _apiClient.get('${ApiConstants.getUserChannel}/$username');
+    final response = await _apiClient.get(
+      '${ApiConstants.getUserChannel}/$username',
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> updateProfile(Map<String, dynamic> data) async {
-    final response = await _apiClient.put(ApiConstants.updateProfile, data: data);
+    final response = await _apiClient.put(
+      ApiConstants.updateProfile,
+      data: data,
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
   // ==================== FOLLOW APIs ====================
   Future<ApiResponse> followUser(String userId) async {
-    final response = await _apiClient.post('${ApiConstants.followUser}/$userId');
+    final response = await _apiClient.post(
+      '${ApiConstants.followUser}/$userId',
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> unfollowUser(String userId) async {
-    final response = await _apiClient.post('${ApiConstants.unfollowUser}/$userId');
+    final response = await _apiClient.post(
+      '${ApiConstants.unfollowUser}/$userId',
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
@@ -94,7 +104,9 @@ class ApiService {
   }
 
   Future<ApiResponse> checkFollowStatus(String userId) async {
-    final response = await _apiClient.get('${ApiConstants.followStatus}/$userId');
+    final response = await _apiClient.get(
+      '${ApiConstants.followStatus}/$userId',
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
@@ -103,19 +115,34 @@ class ApiService {
     final queryParams = <String, dynamic>{'page': page};
     if (type != null) queryParams['type'] = type;
 
-    final response = await _apiClient.get(ApiConstants.getFeed, queryParameters: queryParams);
+    final response = await _apiClient.get(
+      ApiConstants.getFeed,
+      queryParameters: queryParams,
+    );
 
     if (response.data is List) {
-      return ApiResponse(success: true, data: response.data, message: 'Success', statusCode: response.statusCode);
+      return ApiResponse(
+        success: true,
+        data: response.data,
+        message: 'Success',
+        statusCode: response.statusCode,
+      );
     }
     return ApiResponse.fromJson(response.data, null);
   }
 
-  Future<ApiResponse> getUserPosts(String userId, int page, {String? type}) async {
+  Future<ApiResponse> getUserPosts(
+    String userId,
+    int page, {
+    String? type,
+  }) async {
     final queryParams = <String, dynamic>{'page': page};
     if (type != null) queryParams['type'] = type;
 
-    final response = await _apiClient.get('${ApiConstants.allPosts}/$userId', queryParameters: queryParams);
+    final response = await _apiClient.get(
+      '${ApiConstants.allPosts}/$userId',
+      queryParameters: queryParams,
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
@@ -125,25 +152,42 @@ class ApiService {
   }
 
   Future<ApiResponse> createPost(Map<String, dynamic> data) async {
-    final response = await _apiClient.post(ApiConstants.uploadPosts, data: data);
+    final response = await _apiClient.post(
+      ApiConstants.uploadPosts,
+      data: data,
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> likePost(String postId) async {
     try {
-      final response = await _apiClient.post('${ApiConstants.likePost}/$postId/like');
+      final response = await _apiClient.post(
+        '${ApiConstants.likePost}/$postId/like',
+      );
       final data = response.data;
 
       if (data != null && data is Map<String, dynamic>) {
         if (data.containsKey('isLiked') || data.containsKey('likes')) {
-          return ApiResponse(success: true, data: data, message: 'Post liked successfully', statusCode: response.statusCode);
+          return ApiResponse(
+            success: true,
+            data: data,
+            message: 'Post liked successfully',
+            statusCode: response.statusCode,
+          );
         }
         if (data.containsKey('success') && data['success'] == false) {
-          return ApiResponse(success: false, message: data['message'] ?? 'Failed to like post', statusCode: response.statusCode);
+          return ApiResponse(
+            success: false,
+            message: data['message'] ?? 'Failed to like post',
+            statusCode: response.statusCode,
+          );
         }
       }
       return ApiResponse(
-        success: response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300,
+        success:
+            response.statusCode != null &&
+            response.statusCode! >= 200 &&
+            response.statusCode! < 300,
         data: data,
         statusCode: response.statusCode,
       );
@@ -154,19 +198,33 @@ class ApiService {
 
   Future<ApiResponse> dislikePost(String postId) async {
     try {
-      final response = await _apiClient.post('${ApiConstants.dislikePost}/$postId/dislike');
+      final response = await _apiClient.post(
+        '${ApiConstants.dislikePost}/$postId/dislike',
+      );
       final data = response.data;
 
       if (data != null && data is Map<String, dynamic>) {
         if (data.containsKey('isDisliked') || data.containsKey('dislikes')) {
-          return ApiResponse(success: true, data: data, message: 'Post disliked successfully', statusCode: response.statusCode);
+          return ApiResponse(
+            success: true,
+            data: data,
+            message: 'Post disliked successfully',
+            statusCode: response.statusCode,
+          );
         }
         if (data.containsKey('success') && data['success'] == false) {
-          return ApiResponse(success: false, message: data['message'] ?? 'Failed to dislike post', statusCode: response.statusCode);
+          return ApiResponse(
+            success: false,
+            message: data['message'] ?? 'Failed to dislike post',
+            statusCode: response.statusCode,
+          );
         }
       }
       return ApiResponse(
-        success: response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300,
+        success:
+            response.statusCode != null &&
+            response.statusCode! >= 200 &&
+            response.statusCode! < 300,
         data: data,
         statusCode: response.statusCode,
       );
@@ -184,11 +242,18 @@ class ApiService {
     return _parseSearchResponse(response);
   }
 
-  Future<ApiResponse> searchPosts(String query, int page, {String? type}) async {
+  Future<ApiResponse> searchPosts(
+    String query,
+    int page, {
+    String? type,
+  }) async {
     final queryParams = <String, dynamic>{'q': query, 'page': page};
     if (type != null) queryParams['type'] = type;
 
-    final response = await _apiClient.get(ApiConstants.searchPosts, queryParameters: queryParams);
+    final response = await _apiClient.get(
+      ApiConstants.searchPosts,
+      queryParameters: queryParams,
+    );
     return _parseSearchResponse(response);
   }
 
@@ -209,7 +274,13 @@ class ApiService {
   }
 
   Future<ApiResponse> getShorts(int page) async {
-    final response = await _apiClient.get(ApiConstants.getShorts, queryParameters: {'page': page});
+    final response = await _apiClient.get(
+      ApiConstants.getShorts,
+      queryParameters: {
+        'page': page,
+        'type': 'short', // Filter by short type
+      },
+    );
     return _parseSearchResponse(response);
   }
 
@@ -224,24 +295,36 @@ class ApiService {
       );
     }
     if (data is List) {
-      return ApiResponse(success: true, data: data, statusCode: response.statusCode);
+      return ApiResponse(
+        success: true,
+        data: data,
+        statusCode: response.statusCode,
+      );
     }
     return ApiResponse.fromJson(data, null);
   }
 
   // ==================== COMMENT APIs ====================
   Future<ApiResponse> getPostComments(String postId, int page) async {
-    final response = await _apiClient.get('${ApiConstants.commentPost}/$postId', queryParameters: {'page': page});
+    final response = await _apiClient.get(
+      '${ApiConstants.commentPost}/$postId',
+      queryParameters: {'page': page},
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> addComment(String postId, String content) async {
-    final response = await _apiClient.post('${ApiConstants.commentPost}/$postId', data: {'content': content});
+    final response = await _apiClient.post(
+      '${ApiConstants.commentPost}/$postId',
+      data: {'content': content},
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> deleteComment(String commentId) async {
-    final response = await _apiClient.delete('${ApiConstants.commentPost}/$commentId');
+    final response = await _apiClient.delete(
+      '${ApiConstants.commentPost}/$commentId',
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
@@ -252,12 +335,17 @@ class ApiService {
   }
 
   Future<ApiResponse> createStory(Map<String, dynamic> data) async {
-    final response = await _apiClient.post(ApiConstants.createStory, data: data);
+    final response = await _apiClient.post(
+      ApiConstants.createStory,
+      data: data,
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> viewStory(String storyId) async {
-    final response = await _apiClient.post('${ApiConstants.viewStory}/$storyId');
+    final response = await _apiClient.post(
+      '${ApiConstants.viewStory}/$storyId',
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
@@ -268,27 +356,48 @@ class ApiService {
   }
 
   Future<ApiResponse> getChatHistory(String chatId, int page) async {
-    final response = await _apiClient.get('${ApiConstants.getChatHistory}/$chatId', queryParameters: {'page': page});
+    final response = await _apiClient.get(
+      '${ApiConstants.getChatHistory}/$chatId',
+      queryParameters: {'page': page},
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
   Future<ApiResponse> sendMessage(Map<String, dynamic> data) async {
-    final response = await _apiClient.post(ApiConstants.sendMessage, data: data);
+    final response = await _apiClient.post(
+      ApiConstants.sendMessage,
+      data: data,
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
   // ==================== MEDIA UPLOAD ====================
-  Future<ApiResponse> uploadMedia(File file, {ProgressCallback? onProgress}) async {
-    final response = await _apiClient.uploadFile(ApiConstants.uploadMedia, file, onProgress: onProgress);
+  Future<ApiResponse> uploadMedia(
+    File file, {
+    ProgressCallback? onProgress,
+  }) async {
+    final response = await _apiClient.uploadFile(
+      ApiConstants.uploadMedia,
+      file,
+      onProgress: onProgress,
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 
-  Future<ApiResponse> uploadMultipleMedia(List<File> files, {ProgressCallback? onProgress}) async {
+  Future<ApiResponse> uploadMultipleMedia(
+    List<File> files, {
+    ProgressCallback? onProgress,
+  }) async {
     final formData = FormData();
     for (var file in files) {
-      formData.files.add(MapEntry('files', await MultipartFile.fromFile(file.path)));
+      formData.files.add(
+        MapEntry('files', await MultipartFile.fromFile(file.path)),
+      );
     }
-    final response = await _apiClient.post(ApiConstants.uploadMedia, data: formData);
+    final response = await _apiClient.post(
+      ApiConstants.uploadMedia,
+      data: formData,
+    );
     return ApiResponse.fromJson(response.data, null);
   }
 }

@@ -133,17 +133,18 @@ class PostRepository {
   }
 
   // Get Shorts
-  Future<List<PostModel>> getShorts(int page) async {
-    final response = await _apiService.getShorts(page);
+  // Get Shorts
+Future<List<PostModel>> getShorts(int page) async {
+  final response = await _apiService.getShorts(page);  // Call getShorts, not searchShorts
 
-    if (response.success && response.data != null) {
-      final List<dynamic> data = response.data is List
-          ? response.data
-          : (response.data['data'] ?? []);
-      return data.map((json) => PostModel.fromJson(json)).toList();
-    }
-    throw Exception(response.message ?? 'Failed to load shorts');
+  if (response.success && response.data != null) {
+    final List<dynamic> data = response.data is List
+        ? response.data
+        : (response.data['data'] ?? []);
+    return data.map((json) => PostModel.fromJson(json)).toList();
   }
+  throw Exception(response.message ?? 'Failed to load shorts');
+}
 
   // Comments
   Future<List<CommentModel>> getPostComments(String postId, int page) async {

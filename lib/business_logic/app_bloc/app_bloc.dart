@@ -48,17 +48,29 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     on<RealtimeSearch>(_onRealtimeSearch);
   }
 
-  Future<void> _onLoadUserProfile(LoadUserProfile event, Emitter<AppState> emit) async {
+  Future<void> _onLoadUserProfile(
+    LoadUserProfile event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isLoadingUser: true, userError: null));
     try {
       final user = await userRepository.getUserProfile();
-      emit(state.copyWith(selectedUser: user, currentUser: user, isLoadingUser: false));
+      emit(
+        state.copyWith(
+          selectedUser: user,
+          currentUser: user,
+          isLoadingUser: false,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(isLoadingUser: false, userError: e.toString()));
     }
   }
 
-  Future<void> _onUpdateUserProfile(UpdateUserProfile event, Emitter<AppState> emit) async {
+  Future<void> _onUpdateUserProfile(
+    UpdateUserProfile event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isLoadingUser: true, userError: null));
     try {
       final user = await userRepository.updateProfile(event.data);
@@ -72,28 +84,35 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     try {
       await userRepository.followUser(event.userId);
       if (state.selectedUser?.id == event.userId) {
-        emit(state.copyWith(
-          selectedUser: state.selectedUser?.copyWith(
-            isFollowing: true,
-            followersCount: (state.selectedUser?.followersCount ?? 0) + 1,
+        emit(
+          state.copyWith(
+            selectedUser: state.selectedUser?.copyWith(
+              isFollowing: true,
+              followersCount: (state.selectedUser?.followersCount ?? 0) + 1,
+            ),
           ),
-        ));
+        );
       }
     } catch (e) {
       emit(state.copyWith(userError: e.toString()));
     }
   }
 
-  Future<void> _onUnfollowUser(UnfollowUser event, Emitter<AppState> emit) async {
+  Future<void> _onUnfollowUser(
+    UnfollowUser event,
+    Emitter<AppState> emit,
+  ) async {
     try {
       await userRepository.unfollowUser(event.userId);
       if (state.selectedUser?.id == event.userId) {
-        emit(state.copyWith(
-          selectedUser: state.selectedUser?.copyWith(
-            isFollowing: false,
-            followersCount: (state.selectedUser?.followersCount ?? 1) - 1,
+        emit(
+          state.copyWith(
+            selectedUser: state.selectedUser?.copyWith(
+              isFollowing: false,
+              followersCount: (state.selectedUser?.followersCount ?? 1) - 1,
+            ),
           ),
-        ));
+        );
       }
     } catch (e) {
       emit(state.copyWith(userError: e.toString()));
@@ -102,7 +121,13 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
   Future<void> _onLoadFeed(LoadFeed event, Emitter<AppState> emit) async {
     if (event.refresh) {
-      emit(state.copyWith(isLoadingPosts: true, currentFeedPage: 1, postError: null));
+      emit(
+        state.copyWith(
+          isLoadingPosts: true,
+          currentFeedPage: 1,
+          postError: null,
+        ),
+      );
     } else if (!state.hasMorePosts || state.isLoadingPosts) {
       return;
     } else {
@@ -114,28 +139,46 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         event.refresh ? 1 : state.currentFeedPage,
         filterType: event.filterType,
       );
-      emit(state.copyWith(
-        feedPosts: event.refresh ? posts : [...state.feedPosts, ...posts],
-        isLoadingPosts: false,
-        hasMorePosts: posts.isNotEmpty,
-        currentFeedPage: event.refresh ? 2 : state.currentFeedPage + 1,
-      ));
+      emit(
+        state.copyWith(
+          feedPosts: event.refresh ? posts : [...state.feedPosts, ...posts],
+          isLoadingPosts: false,
+          hasMorePosts: posts.isNotEmpty,
+          currentFeedPage: event.refresh ? 2 : state.currentFeedPage + 1,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(isLoadingPosts: false, postError: e.toString()));
     }
   }
 
-  Future<void> _onLoadUserPosts(LoadUserPosts event, Emitter<AppState> emit) async {
-    emit(state.copyWith(isLoadingPosts: true, postError: null, userPosts: event.refresh ? [] : state.userPosts));
+  Future<void> _onLoadUserPosts(
+    LoadUserPosts event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        isLoadingPosts: true,
+        postError: null,
+        userPosts: event.refresh ? [] : state.userPosts,
+      ),
+    );
     try {
-      final posts = await postRepository.getUserPosts(event.userId, 1, filterType: event.filterType);
+      final posts = await postRepository.getUserPosts(
+        event.userId,
+        1,
+        filterType: event.filterType,
+      );
       emit(state.copyWith(userPosts: posts, isLoadingPosts: false));
     } catch (e) {
       emit(state.copyWith(isLoadingPosts: false, postError: e.toString()));
     }
   }
 
-  Future<void> _onLoadPostDetails(LoadPostDetails event, Emitter<AppState> emit) async {
+  Future<void> _onLoadPostDetails(
+    LoadPostDetails event,
+    Emitter<AppState> emit,
+  ) async {
     emit(state.copyWith(isLoadingPosts: true, postError: null));
     try {
       final post = await postRepository.getPostById(event.postId);
@@ -146,18 +189,30 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   Future<void> _onCreatePost(CreatePost event, Emitter<AppState> emit) async {
-    emit(state.copyWith(isUploading: true, uploadProgress: 0.0, uploadError: null));
+    emit(
+      state.copyWith(isUploading: true, uploadProgress: 0.0, uploadError: null),
+    );
     try {
-      final mediaUrls = await postRepository.uploadMultipleMedia(event.mediaFiles);
+      final mediaUrls = await postRepository.uploadMultipleMedia(
+        event.mediaFiles,
+      );
       final postData = {
         'caption': event.caption,
         'location': event.location,
         'tags': event.tags,
         'type': event.postType,
-        'media': mediaUrls.map((url) => {'url': url, 'type': event.postType}).toList(),
+        'media': mediaUrls
+            .map((url) => {'url': url, 'type': event.postType})
+            .toList(),
       };
       final post = await postRepository.createPost(postData);
-      emit(state.copyWith(feedPosts: [post, ...state.feedPosts], isUploading: false, uploadProgress: 1.0));
+      emit(
+        state.copyWith(
+          feedPosts: [post, ...state.feedPosts],
+          isUploading: false,
+          uploadProgress: 1.0,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(isUploading: false, uploadError: e.toString()));
     }
@@ -165,7 +220,13 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
   Future<void> _onLoadShorts(LoadShorts event, Emitter<AppState> emit) async {
     if (event.refresh) {
-      emit(state.copyWith(isLoadingShorts: true, currentShortsPage: 1, shortsError: null));
+      emit(
+        state.copyWith(
+          isLoadingShorts: true,
+          currentShortsPage: 1,
+          shortsError: null,
+        ),
+      );
     } else if (!state.hasMoreShorts || state.isLoadingShorts) {
       return;
     } else {
@@ -173,13 +234,17 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     }
 
     try {
-      final shorts = await postRepository.getShorts(event.refresh ? 1 : state.currentShortsPage);
-      emit(state.copyWith(
-        shorts: event.refresh ? shorts : [...state.shorts, ...shorts],
-        isLoadingShorts: false,
-        hasMoreShorts: shorts.isNotEmpty,
-        currentShortsPage: event.refresh ? 2 : state.currentShortsPage + 1,
-      ));
+      final shorts = await postRepository.getShorts(
+        event.refresh ? 1 : state.currentShortsPage,
+      );
+      emit(
+        state.copyWith(
+          shorts: event.refresh ? shorts : [...state.shorts, ...shorts],
+          isLoadingShorts: false,
+          hasMoreShorts: shorts.isNotEmpty,
+          currentShortsPage: event.refresh ? 2 : state.currentShortsPage + 1,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(isLoadingShorts: false, shortsError: e.toString()));
     }
@@ -187,31 +252,67 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
   Future<void> _onLikePost(LikePost event, Emitter<AppState> emit) async {
     final originalFeedPosts = List<PostModel>.from(state.feedPosts);
+    final originalShorts = List<PostModel>.from(state.shorts);
     final originalSelectedPost = state.selectedPost;
 
-    final currentPost = state.feedPosts.firstWhere((p) => p.id == event.postId, orElse: () => state.selectedPost!);
+    // Find post in feed or shorts
+    final currentPost = state.feedPosts.firstWhere(
+      (p) => p.id == event.postId,
+      orElse: () => state.shorts.firstWhere(
+        (p) => p.id == event.postId,
+        orElse: () => state.selectedPost!,
+      ),
+    );
+
     final wasLiked = currentPost.isLiked;
     final wasDisliked = currentPost.isDisliked;
 
+    // Update feed posts optimistically
     final optimisticFeedPosts = state.feedPosts.map((post) {
       if (post.id == event.postId) {
         if (wasLiked) {
           return post.copyWith(isLiked: false, likesCount: post.likesCount - 1);
         } else {
           return post.copyWith(
-            isLiked: true, isDisliked: false,
+            isLiked: true,
+            isDisliked: false,
             likesCount: post.likesCount + 1,
-            dislikesCount: wasDisliked ? post.dislikesCount - 1 : post.dislikesCount,
+            dislikesCount: wasDisliked
+                ? post.dislikesCount - 1
+                : post.dislikesCount,
           );
         }
       }
       return post;
     }).toList();
 
-    emit(state.copyWith(feedPosts: optimisticFeedPosts));
+    // Update shorts optimistically
+    final optimisticShorts = state.shorts.map((post) {
+      if (post.id == event.postId) {
+        if (wasLiked) {
+          return post.copyWith(isLiked: false, likesCount: post.likesCount - 1);
+        } else {
+          return post.copyWith(
+            isLiked: true,
+            isDisliked: false,
+            likesCount: post.likesCount + 1,
+            dislikesCount: wasDisliked
+                ? post.dislikesCount - 1
+                : post.dislikesCount,
+          );
+        }
+      }
+      return post;
+    }).toList();
+
+    emit(
+      state.copyWith(feedPosts: optimisticFeedPosts, shorts: optimisticShorts),
+    );
 
     try {
       final backendData = await postRepository.likePost(event.postId);
+
+      // Confirm with backend data
       final confirmedFeedPosts = state.feedPosts.map((post) {
         if (post.id == event.postId) {
           return post.copyWith(
@@ -223,26 +324,62 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         }
         return post;
       }).toList();
-      emit(state.copyWith(feedPosts: confirmedFeedPosts));
+
+      final confirmedShorts = state.shorts.map((post) {
+        if (post.id == event.postId) {
+          return post.copyWith(
+            isLiked: backendData['isLiked'] ?? false,
+            isDisliked: backendData['isDisliked'] ?? false,
+            likesCount: backendData['likesCount'] ?? 0,
+            dislikesCount: backendData['dislikesCount'] ?? 0,
+          );
+        }
+        return post;
+      }).toList();
+
+      emit(
+        state.copyWith(feedPosts: confirmedFeedPosts, shorts: confirmedShorts),
+      );
     } catch (e) {
-      emit(state.copyWith(feedPosts: originalFeedPosts, selectedPost: originalSelectedPost, postError: e.toString()));
+      emit(
+        state.copyWith(
+          feedPosts: originalFeedPosts,
+          shorts: originalShorts,
+          selectedPost: originalSelectedPost,
+          postError: e.toString(),
+        ),
+      );
     }
   }
 
   Future<void> _onDislikePost(DislikePost event, Emitter<AppState> emit) async {
     final originalFeedPosts = List<PostModel>.from(state.feedPosts);
+    final originalShorts = List<PostModel>.from(state.shorts);
 
-    final currentPost = state.feedPosts.firstWhere((p) => p.id == event.postId, orElse: () => state.selectedPost!);
+    // Find post in feed or shorts
+    final currentPost = state.feedPosts.firstWhere(
+      (p) => p.id == event.postId,
+      orElse: () => state.shorts.firstWhere(
+        (p) => p.id == event.postId,
+        orElse: () => state.selectedPost!,
+      ),
+    );
+
     final wasLiked = currentPost.isLiked;
     final wasDisliked = currentPost.isDisliked;
 
+    // Update feed posts optimistically
     final optimisticFeedPosts = state.feedPosts.map((post) {
       if (post.id == event.postId) {
         if (wasDisliked) {
-          return post.copyWith(isDisliked: false, dislikesCount: post.dislikesCount - 1);
+          return post.copyWith(
+            isDisliked: false,
+            dislikesCount: post.dislikesCount - 1,
+          );
         } else {
           return post.copyWith(
-            isDisliked: true, isLiked: false,
+            isDisliked: true,
+            isLiked: false,
             dislikesCount: post.dislikesCount + 1,
             likesCount: wasLiked ? post.likesCount - 1 : post.likesCount,
           );
@@ -251,10 +388,34 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       return post;
     }).toList();
 
-    emit(state.copyWith(feedPosts: optimisticFeedPosts));
+    // Update shorts optimistically
+    final optimisticShorts = state.shorts.map((post) {
+      if (post.id == event.postId) {
+        if (wasDisliked) {
+          return post.copyWith(
+            isDisliked: false,
+            dislikesCount: post.dislikesCount - 1,
+          );
+        } else {
+          return post.copyWith(
+            isDisliked: true,
+            isLiked: false,
+            dislikesCount: post.dislikesCount + 1,
+            likesCount: wasLiked ? post.likesCount - 1 : post.likesCount,
+          );
+        }
+      }
+      return post;
+    }).toList();
+
+    emit(
+      state.copyWith(feedPosts: optimisticFeedPosts, shorts: optimisticShorts),
+    );
 
     try {
       final backendData = await postRepository.dislikePost(event.postId);
+
+      // Confirm with backend data
       final confirmedFeedPosts = state.feedPosts.map((post) {
         if (post.id == event.postId) {
           return post.copyWith(
@@ -266,15 +427,46 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         }
         return post;
       }).toList();
-      emit(state.copyWith(feedPosts: confirmedFeedPosts));
+
+      final confirmedShorts = state.shorts.map((post) {
+        if (post.id == event.postId) {
+          return post.copyWith(
+            isLiked: backendData['isLiked'] ?? false,
+            isDisliked: backendData['isDisliked'] ?? false,
+            likesCount: backendData['likesCount'] ?? 0,
+            dislikesCount: backendData['dislikesCount'] ?? 0,
+          );
+        }
+        return post;
+      }).toList();
+
+      emit(
+        state.copyWith(feedPosts: confirmedFeedPosts, shorts: confirmedShorts),
+      );
     } catch (e) {
-      emit(state.copyWith(feedPosts: originalFeedPosts, postError: e.toString()));
+      emit(
+        state.copyWith(
+          feedPosts: originalFeedPosts,
+          shorts: originalShorts,
+          postError: e.toString(),
+        ),
+      );
     }
   }
 
-  Future<void> _onLoadComments(LoadComments event, Emitter<AppState> emit) async {
+  Future<void> _onLoadComments(
+    LoadComments event,
+    Emitter<AppState> emit,
+  ) async {
     if (event.refresh) {
-      emit(state.copyWith(isLoadingComments: true, currentCommentsPage: 1, commentError: null, comments: []));
+      emit(
+        state.copyWith(
+          isLoadingComments: true,
+          currentCommentsPage: 1,
+          commentError: null,
+          comments: [],
+        ),
+      );
     } else if (!state.hasMoreComments || state.isLoadingComments) {
       return;
     } else {
@@ -282,31 +474,52 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     }
 
     try {
-      final comments = await postRepository.getPostComments(event.postId, event.refresh ? 1 : state.currentCommentsPage);
-      emit(state.copyWith(
-        comments: event.refresh ? comments : [...state.comments, ...comments],
-        isLoadingComments: false,
-        hasMoreComments: comments.isNotEmpty,
-        currentCommentsPage: event.refresh ? 2 : state.currentCommentsPage + 1,
-      ));
+      final comments = await postRepository.getPostComments(
+        event.postId,
+        event.refresh ? 1 : state.currentCommentsPage,
+      );
+      emit(
+        state.copyWith(
+          comments: event.refresh ? comments : [...state.comments, ...comments],
+          isLoadingComments: false,
+          hasMoreComments: comments.isNotEmpty,
+          currentCommentsPage: event.refresh
+              ? 2
+              : state.currentCommentsPage + 1,
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(isLoadingComments: false, commentError: e.toString()));
+      emit(
+        state.copyWith(isLoadingComments: false, commentError: e.toString()),
+      );
     }
   }
 
   Future<void> _onAddComment(AddComment event, Emitter<AppState> emit) async {
     try {
-      final comment = await postRepository.addComment(event.postId, event.content);
+      final comment = await postRepository.addComment(
+        event.postId,
+        event.content,
+      );
       emit(state.copyWith(comments: [comment, ...state.comments]));
     } catch (e) {
       emit(state.copyWith(commentError: e.toString()));
     }
   }
 
-  Future<void> _onDeleteComment(DeleteComment event, Emitter<AppState> emit) async {
+  Future<void> _onDeleteComment(
+    DeleteComment event,
+    Emitter<AppState> emit,
+  ) async {
     try {
       await postRepository.deleteComment(event.commentId);
-      emit(state.copyWith(comments: state.comments.where((c) => c.id != event.commentId).toList()));
+      emit(
+        state.copyWith(
+          comments: state.comments
+              .where((c) => c.id != event.commentId)
+              .toList(),
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(commentError: e.toString()));
     }
@@ -326,7 +539,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     emit(state.copyWith(isUploading: true, uploadError: null));
     try {
       final mediaUrl = await postRepository.uploadMedia(event.mediaFile);
-      await postRepository.createStory({'media_url': mediaUrl, 'type': event.storyType});
+      await postRepository.createStory({
+        'media_url': mediaUrl,
+        'type': event.storyType,
+      });
       emit(state.copyWith(isUploading: false));
       add(LoadStories());
     } catch (e) {
@@ -335,7 +551,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   Future<void> _onViewStory(ViewStory event, Emitter<AppState> emit) async {
-    try { await postRepository.viewStory(event.storyId); } catch (_) {}
+    try {
+      await postRepository.viewStory(event.storyId);
+    } catch (_) {}
   }
 
   Future<void> _onLoadChats(LoadChats event, Emitter<AppState> emit) async {
@@ -348,11 +566,25 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     }
   }
 
-  Future<void> _onLoadChatHistory(LoadChatHistory event, Emitter<AppState> emit) async {
-    emit(state.copyWith(isLoadingMessages: true, chatError: null, messages: event.refresh ? [] : state.messages));
+  Future<void> _onLoadChatHistory(
+    LoadChatHistory event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        isLoadingMessages: true,
+        chatError: null,
+        messages: event.refresh ? [] : state.messages,
+      ),
+    );
     try {
       final messages = await chatRepository.getChatHistory(event.chatId, 1);
-      emit(state.copyWith(messages: messages.reversed.toList(), isLoadingMessages: false));
+      emit(
+        state.copyWith(
+          messages: messages.reversed.toList(),
+          isLoadingMessages: false,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(isLoadingMessages: false, chatError: e.toString()));
     }
@@ -361,8 +593,14 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   Future<void> _onSendMessage(SendMessage event, Emitter<AppState> emit) async {
     try {
       String? mediaUrl;
-      if (event.mediaFile != null) mediaUrl = await postRepository.uploadMedia(event.mediaFile!);
-      final messageData = {'receiver_id': event.receiverId, 'content': event.content, 'media_url': mediaUrl, 'type': event.messageType};
+      if (event.mediaFile != null)
+        mediaUrl = await postRepository.uploadMedia(event.mediaFile!);
+      final messageData = {
+        'receiver_id': event.receiverId,
+        'content': event.content,
+        'media_url': mediaUrl,
+        'type': event.messageType,
+      };
       final message = await chatRepository.sendMessage(messageData);
       emit(state.copyWith(messages: [...state.messages, message]));
     } catch (e) {
@@ -370,7 +608,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     }
   }
 
-  Future<void> _onReceiveMessage(ReceiveMessage event, Emitter<AppState> emit) async {
+  Future<void> _onReceiveMessage(
+    ReceiveMessage event,
+    Emitter<AppState> emit,
+  ) async {
     try {
       final message = MessageModel.fromJson(event.messageData);
       emit(state.copyWith(messages: [...state.messages, message]));
@@ -378,7 +619,13 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   Future<void> _onSearchUsers(SearchUsers event, Emitter<AppState> emit) async {
-    emit(state.copyWith(isSearching: true, searchQuery: event.query, searchError: null));
+    emit(
+      state.copyWith(
+        isSearching: true,
+        searchQuery: event.query,
+        searchError: null,
+      ),
+    );
     try {
       final users = await searchRepository.searchUsers(event.query, event.page);
       emit(state.copyWith(searchedUsers: users, isSearching: false));
@@ -388,63 +635,148 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   Future<void> _onSearchPosts(SearchPosts event, Emitter<AppState> emit) async {
-    emit(state.copyWith(isSearching: true, searchQuery: event.query, searchError: null));
+    emit(
+      state.copyWith(
+        isSearching: true,
+        searchQuery: event.query,
+        searchError: null,
+      ),
+    );
     try {
-      final posts = await searchRepository.searchPosts(event.query, event.page, filterType: event.filterType);
+      final posts = await searchRepository.searchPosts(
+        event.query,
+        event.page,
+        filterType: event.filterType,
+      );
       emit(state.copyWith(searchedPosts: posts, isSearching: false));
     } catch (e) {
       emit(state.copyWith(isSearching: false, searchError: e.toString()));
     }
   }
 
-  Future<void> _onSearchContent(SearchContent event, Emitter<AppState> emit) async {
-    emit(state.copyWith(isSearching: true, searchQuery: event.query, searchError: null));
+  Future<void> _onSearchContent(
+    SearchContent event,
+    Emitter<AppState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        isSearching: true,
+        searchQuery: event.query,
+        searchError: null,
+      ),
+    );
     try {
       final result = await searchRepository.searchAll(event.query, event.page);
-      emit(state.copyWith(searchedUsers: result.users, searchedPosts: result.posts, isSearching: false, hasMoreSearchResults: result.hasMore));
+      emit(
+        state.copyWith(
+          searchedUsers: result.users,
+          searchedPosts: result.posts,
+          isSearching: false,
+          hasMoreSearchResults: result.hasMore,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(isSearching: false, searchError: e.toString()));
     }
   }
 
   Future<void> _onClearSearch(ClearSearch event, Emitter<AppState> emit) async {
-    emit(state.copyWith(searchedUsers: [], searchedPosts: [], searchQuery: null, searchError: null));
+    emit(
+      state.copyWith(
+        searchedUsers: [],
+        searchedPosts: [],
+        searchQuery: null,
+        searchError: null,
+      ),
+    );
   }
 
-  Future<void> _onRealtimeSearch(RealtimeSearch event, Emitter<AppState> emit) async {
+  Future<void> _onRealtimeSearch(
+    RealtimeSearch event,
+    Emitter<AppState> emit,
+  ) async {
     if (event.query.trim().isEmpty) {
-      emit(state.copyWith(searchedUsers: [], searchedPosts: [], searchQuery: null, isSearching: false));
+      emit(
+        state.copyWith(
+          searchedUsers: [],
+          searchedPosts: [],
+          searchQuery: null,
+          isSearching: false,
+        ),
+      );
       return;
     }
 
-    emit(state.copyWith(isSearching: true, searchQuery: event.query, searchError: null));
+    emit(
+      state.copyWith(
+        isSearching: true,
+        searchQuery: event.query,
+        searchError: null,
+      ),
+    );
 
     try {
       switch (event.filterType) {
         case SearchFilterType.users:
           final users = await searchRepository.searchUsers(event.query, 1);
-          emit(state.copyWith(searchedUsers: users, searchedPosts: [], isSearching: false));
+          emit(
+            state.copyWith(
+              searchedUsers: users,
+              searchedPosts: [],
+              isSearching: false,
+            ),
+          );
           break;
         case SearchFilterType.videos:
           final posts = await searchRepository.searchVideos(event.query, 1);
-          emit(state.copyWith(searchedPosts: posts, searchedUsers: [], isSearching: false));
+          emit(
+            state.copyWith(
+              searchedPosts: posts,
+              searchedUsers: [],
+              isSearching: false,
+            ),
+          );
           break;
         case SearchFilterType.images:
           final posts = await searchRepository.searchImages(event.query, 1);
-          emit(state.copyWith(searchedPosts: posts, searchedUsers: [], isSearching: false));
+          emit(
+            state.copyWith(
+              searchedPosts: posts,
+              searchedUsers: [],
+              isSearching: false,
+            ),
+          );
           break;
         case SearchFilterType.shorts:
           final posts = await searchRepository.searchShorts(event.query, 1);
-          emit(state.copyWith(searchedPosts: posts, searchedUsers: [], isSearching: false));
+          emit(
+            state.copyWith(
+              searchedPosts: posts,
+              searchedUsers: [],
+              isSearching: false,
+            ),
+          );
           break;
         case SearchFilterType.posts:
           final posts = await searchRepository.searchPosts(event.query, 1);
-          emit(state.copyWith(searchedPosts: posts, searchedUsers: [], isSearching: false));
+          emit(
+            state.copyWith(
+              searchedPosts: posts,
+              searchedUsers: [],
+              isSearching: false,
+            ),
+          );
           break;
         case SearchFilterType.all:
         default:
           final result = await searchRepository.searchAll(event.query, 1);
-          emit(state.copyWith(searchedUsers: result.users, searchedPosts: result.posts, isSearching: false));
+          emit(
+            state.copyWith(
+              searchedUsers: result.users,
+              searchedPosts: result.posts,
+              isSearching: false,
+            ),
+          );
           break;
       }
     } catch (e) {

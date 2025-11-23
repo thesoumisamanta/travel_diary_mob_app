@@ -29,6 +29,7 @@ class ApiConstants {
   static const String getFeed = '/posts/feed/following';
   static const String likePost = '/posts';
   static const String dislikePost = '/posts';
+  static const String getShorts = '/posts/list';
 
   // Comment endpoints
   static const String commentPost = '/comments';
@@ -38,7 +39,7 @@ class ApiConstants {
   static const String searchPosts = '/search/posts';
   static const String searchAll = '/search/all';
   static const String searchContent = '/search/all';
-  static const String getShorts = '/search/shorts';
+  static const String searchShorts = '/search/shorts';
 
 
   // Story endpoints
