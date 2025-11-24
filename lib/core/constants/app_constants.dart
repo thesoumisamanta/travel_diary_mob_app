@@ -4,8 +4,8 @@ class AppConstants {
   static const String appVersion = '1.0.0';
   
   // Account Types
-  static const String personalAccount = 'personal';
-  static const String businessAccount = 'business';
+  static const String personalAccount = 'Personal';
+  static const String businessAccount = 'Business';
   
   // Post Types
   static const String postTypeImage = 'image';

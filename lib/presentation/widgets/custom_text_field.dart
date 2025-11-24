@@ -17,6 +17,7 @@ class CustomTextField extends StatefulWidget {
   final void Function()? onTap;
   final bool readOnly;
   final bool enabled;
+  final FocusNode? focusNode;
 
   const CustomTextField({
     Key? key,
@@ -35,6 +36,7 @@ class CustomTextField extends StatefulWidget {
     this.onTap,
     this.readOnly = false,
     this.enabled = true,
+    this.focusNode,
   }) : super(key: key);
 
   @override
@@ -77,6 +79,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           onTap: widget.onTap,
           readOnly: widget.readOnly,
           enabled: widget.enabled,
+          focusNode: widget.focusNode,
           decoration: InputDecoration(
             hintText: widget.hint,
             errorText: widget.errorText,

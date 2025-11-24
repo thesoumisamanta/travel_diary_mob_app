@@ -7,25 +7,20 @@ class AuthRepository {
   final StorageRepository _storageRepository;
 
   AuthRepository(this._apiService, this._storageRepository) {
-    // Setup token refresh callbacks when repository is initialized
     _setupTokenRefresh();
   }
 
   void _setupTokenRefresh() {
     _apiService.setupTokenCallbacks(
-      // Get refresh token from storage
       getRefreshToken: () async {
         return await _storageRepository.getRefreshToken();
       },
-      
-      // Save new tokens when refreshed
       onTokensRefreshed: (accessToken, refreshToken) async {
         await _storageRepository.saveAccessToken(accessToken);
         await _storageRepository.saveRefreshToken(refreshToken);
         _apiService.setAccessToken(accessToken);
         _apiService.setRefreshToken(refreshToken);
       },
-      
       onRefreshFailed: () async {
         await _storageRepository.clearSessionOnly();
         _apiService.setAccessToken(null);
@@ -57,28 +52,96 @@ class AuthRepository {
   }
 
   Future<UserModel> register(Map<String, dynamic> data) async {
-    final response = await _apiService.register(data);
+    try {
+      final response = await _apiService.register(data);
 
-    if (response.success && response.data != null) {
-      final responseData = response.data as Map<String, dynamic>;
-      final user = UserModel.fromJson(responseData['user']);
-      final accessToken =
-          responseData['access_token'] ?? responseData['accessToken'];
-      final refreshToken =
-          responseData['refresh_token'] ?? responseData['refreshToken'];
+      print('Register response: ${response.toString()}');
+      print('Register response.data: ${response.data}');
+      print('Register response.success: ${response.success}');
 
-      // Save tokens and user info
-      await _storageRepository.saveAccessToken(accessToken);
-      await _storageRepository.saveRefreshToken(refreshToken);
-      await _storageRepository.saveUserId(user.id);
+      if (response.success && response.data != null) {
+        final responseData = response.data;
+        
+        // Handle different response structures
+        Map<String, dynamic>? userData;
+        String? accessToken;
+        String? refreshToken;
 
-      // Set token in API service
-      _apiService.setAccessToken(accessToken);
-      _apiService.setRefreshToken(refreshToken);
+        // Case 1: response.data is the user object directly
+        if (responseData is Map<String, dynamic>) {
+          if (responseData.containsKey('user')) {
+            // Case 2: response.data has a 'user' field
+            userData = responseData['user'] as Map<String, dynamic>?;
+            accessToken = responseData['access_token'] ?? 
+                         responseData['accessToken'];
+            refreshToken = responseData['refresh_token'] ?? 
+                          responseData['refreshToken'];
+          } else if (responseData.containsKey('data')) {
+            // Case 3: response.data has a nested 'data' field
+            final nestedData = responseData['data'] as Map<String, dynamic>?;
+            if (nestedData != null) {
+              userData = nestedData['user'] as Map<String, dynamic>?;
+              accessToken = nestedData['access_token'] ?? 
+                           nestedData['accessToken'] ??
+                           responseData['access_token'] ?? 
+                           responseData['accessToken'];
+              refreshToken = nestedData['refresh_token'] ?? 
+                            nestedData['refreshToken'] ??
+                            responseData['refresh_token'] ?? 
+                            responseData['refreshToken'];
+            }
+          } else if (responseData.containsKey('_id') || 
+                     responseData.containsKey('username')) {
+            // Case 4: response.data IS the user object
+            userData = responseData;
+            // Tokens might be at root level or missing
+            accessToken = responseData['access_token'] ?? 
+                         responseData['accessToken'];
+            refreshToken = responseData['refresh_token'] ?? 
+                          responseData['refreshToken'];
+          }
+        }
 
-      return user;
-    } else {
-      throw Exception(response.message ?? 'Registration failed');
+        if (userData == null) {
+          print('Failed to extract user data from response');
+          throw Exception('Invalid response format: user data not found');
+        }
+
+        print('Extracted userData: $userData');
+
+        // Parse user with error handling
+        UserModel user;
+        try {
+          user = UserModel.fromJson(userData);
+        } catch (e) {
+          print('Error parsing UserModel: $e');
+          print('Problematic userData: $userData');
+          rethrow;
+        }
+
+        // Save tokens if available
+        if (accessToken != null && refreshToken != null) {
+          await _storageRepository.saveAccessToken(accessToken);
+          await _storageRepository.saveRefreshToken(refreshToken);
+          await _storageRepository.saveUserId(user.id);
+
+          _apiService.setAccessToken(accessToken);
+          _apiService.setRefreshToken(refreshToken);
+          
+          print('Registration successful with tokens');
+        } else {
+          print('Warning: Tokens not found in registration response');
+          // Registration successful but no tokens - user needs to login
+          // Don't throw error, just return the user
+        }
+
+        return user;
+      } else {
+        throw Exception(response.message ?? 'Registration failed');
+      }
+    } catch (e) {
+      print('Registration error: $e');
+      rethrow;
     }
   }
 
@@ -88,7 +151,6 @@ class AuthRepository {
     } catch (e) {
       // Ignore API error and proceed with local logout
     } finally {
-      // Clear only session data, keep remember-me data intact
       await _storageRepository.clearSessionOnly();
       _apiService.setAccessToken(null);
       _apiService.setRefreshToken(null);

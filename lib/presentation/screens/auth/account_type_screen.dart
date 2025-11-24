@@ -10,7 +10,7 @@ class AccountTypeScreen extends StatefulWidget {
 }
 
 class _AccountTypeScreenState extends State<AccountTypeScreen> {
-  String _selectedType = 'personal';
+  String _selectedType = 'Personal';
 
   @override
   Widget build(BuildContext context) {
@@ -31,10 +31,10 @@ class _AccountTypeScreenState extends State<AccountTypeScreen> {
                     title: 'Personal Account',
                     description: 'Share your travel stories with friends',
                     icon: Icons.person_rounded,
-                    isSelected: _selectedType == 'personal',
+                    isSelected: _selectedType == 'Personal',
                     onTap: () {
                       setState(() {
-                        _selectedType = 'personal';
+                        _selectedType = 'Personal';
                       });
                     },
                     features: [

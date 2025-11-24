@@ -10,15 +10,19 @@ import 'package:travel_diary_mob_app/data/models/comment_model.dart';
 
 class CommentItem extends StatefulWidget {
   final CommentModel comment;
-  final VoidCallback? onReply;
+  final Function(String commentId, String username)? onReply;
   final bool isReply;
+  final int depth;
+  final String rootCommentId;
 
   const CommentItem({
     super.key,
     required this.comment,
     this.onReply,
     this.isReply = false,
-  });
+    this.depth = 0,
+    String? rootCommentId,
+  }) : rootCommentId = rootCommentId ?? '';
 
   @override
   State<CommentItem> createState() => _CommentItemState();
@@ -51,9 +55,15 @@ class _CommentItemState extends State<CommentItem> {
           }
         }
 
+        // Calculate left padding based on depth (max 3 levels of indentation)
+        final leftPadding = (widget.depth > 0 ? (widget.depth * 24.0).clamp(0, 72) : 12.0);
+
+        // Determine the actual root comment ID
+        final actualRootId = widget.rootCommentId.isEmpty ? widget.comment.id : widget.rootCommentId;
+
         return Padding(
           padding: EdgeInsets.only(
-            left: widget.isReply ? 48.0 : 12.0,
+            left: leftPadding.toDouble(),
             right: 12.0,
             top: 12.0,
           ),
@@ -65,17 +75,17 @@ class _CommentItemState extends State<CommentItem> {
                 children: [
                   // Avatar
                   CircleAvatar(
-                    radius: 18,
+                    radius: widget.depth > 0 ? 16 : 18,
                     backgroundImage:
                         updatedComment.author.profilePicture != null
-                        ? CachedNetworkImageProvider(
-                            updatedComment.author.profilePicture!,
-                          )
-                        : null,
+                            ? CachedNetworkImageProvider(
+                                updatedComment.author.profilePicture!,
+                              )
+                            : null,
                     child: updatedComment.author.profilePicture == null
                         ? Text(
                             updatedComment.author.username[0].toUpperCase(),
-                            style: const TextStyle(fontSize: 14),
+                            style: TextStyle(fontSize: widget.depth > 0 ? 12 : 14),
                           )
                         : null,
                   ),
@@ -88,11 +98,14 @@ class _CommentItemState extends State<CommentItem> {
                         // Author and time
                         Row(
                           children: [
-                            Text(
-                              updatedComment.author.username,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                            Flexible(
+                              child: Text(
+                                updatedComment.author.username,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             if (updatedComment.author.isVerified) ...[
@@ -134,16 +147,19 @@ class _CommentItemState extends State<CommentItem> {
                         ),
                         const SizedBox(height: 8),
                         // Action buttons
-                        Row(
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 8,
                           children: [
                             // Like button
                             InkWell(
                               onTap: () {
                                 context.read<AppBloc>().add(
-                                  LikeComment(updatedComment.id),
-                                );
+                                      LikeComment(updatedComment.id),
+                                    );
                               },
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     updatedComment.isLiked
@@ -154,28 +170,30 @@ class _CommentItemState extends State<CommentItem> {
                                         ? AppColors.primary
                                         : AppColors.textSecondary,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    updatedComment.likesCount.toString(),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: updatedComment.isLiked
-                                          ? AppColors.primary
-                                          : AppColors.textSecondary,
+                                  if (updatedComment.likesCount > 0) ...[
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      updatedComment.likesCount.toString(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: updatedComment.isLiked
+                                            ? AppColors.primary
+                                            : AppColors.textSecondary,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 16),
                             // Dislike button
                             InkWell(
                               onTap: () {
                                 context.read<AppBloc>().add(
-                                  DislikeComment(updatedComment.id),
-                                );
+                                      DislikeComment(updatedComment.id),
+                                    );
                               },
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     updatedComment.isDisliked
@@ -186,24 +204,30 @@ class _CommentItemState extends State<CommentItem> {
                                         ? AppColors.error
                                         : AppColors.textSecondary,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    updatedComment.dislikesCount.toString(),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: updatedComment.isDisliked
-                                          ? AppColors.error
-                                          : AppColors.textSecondary,
+                                  if (updatedComment.dislikesCount > 0) ...[
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      updatedComment.dislikesCount.toString(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: updatedComment.isDisliked
+                                            ? AppColors.error
+                                            : AppColors.textSecondary,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            // Reply button
+                            // Reply button (ALWAYS SHOW for all comments)
                             if (widget.onReply != null)
                               InkWell(
-                                onTap: widget.onReply,
+                                onTap: () {
+                                  widget.onReply!(
+                                    updatedComment.id,
+                                    updatedComment.author.username,
+                                  );
+                                },
                                 child: const Text(
                                   'Reply',
                                   style: TextStyle(
@@ -213,10 +237,8 @@ class _CommentItemState extends State<CommentItem> {
                                   ),
                                 ),
                               ),
-                            // Show replies button
-                            if (updatedComment.replyCount > 0 &&
-                                !widget.isReply) ...[
-                              const SizedBox(width: 16),
+                            // Show replies button (ONLY for root comments with replies)
+                            if (updatedComment.replyCount > 0 && widget.depth == 0)
                               InkWell(
                                 onTap: () {
                                   setState(() {
@@ -224,14 +246,15 @@ class _CommentItemState extends State<CommentItem> {
                                   });
                                   if (_showReplies) {
                                     context.read<AppBloc>().add(
-                                      LoadCommentReplies(
-                                        updatedComment.id,
-                                        refresh: true,
-                                      ),
-                                    );
+                                          LoadCommentReplies(
+                                            updatedComment.id,
+                                            refresh: true,
+                                          ),
+                                        );
                                   }
                                 },
                                 child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
                                       _showReplies
@@ -242,7 +265,7 @@ class _CommentItemState extends State<CommentItem> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      '${updatedComment.replyCount} ${updatedComment.replyCount == 1 ? 'reply' : 'replies'}',
+                                      '${updatedComment.replyCount} ${updatedComment.replyCount == 1 ? 'Reply' : 'Replies'}',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -252,7 +275,6 @@ class _CommentItemState extends State<CommentItem> {
                                   ],
                                 ),
                               ),
-                            ],
                           ],
                         ),
                       ],
@@ -260,8 +282,8 @@ class _CommentItemState extends State<CommentItem> {
                   ),
                 ],
               ),
-              // Replies section
-              if (_showReplies && !widget.isReply) ...[
+              // Replies section (Expanded/Collapsed) - Only for root level
+              if (_showReplies && widget.depth == 0) ...[
                 const SizedBox(height: 8),
                 _buildRepliesSection(state, updatedComment.id),
               ],
@@ -276,20 +298,34 @@ class _CommentItemState extends State<CommentItem> {
     final replies = state.replies[commentId] ?? [];
 
     if (state.isLoadingReplies && replies.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator()),
+      return Padding(
+        padding: EdgeInsets.only(left: 24.0 * (widget.depth + 1), top: 8, bottom: 8),
+        child: const Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
       );
     }
 
+    if (replies.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Sort replies by creation time (oldest first - FCFS)
+    final sortedReplies = List<CommentModel>.from(replies)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
     return Column(
-      children: replies.map((reply) {
+      children: sortedReplies.map((reply) {
         return CommentItem(
           comment: reply,
           isReply: true,
-          onReply: () {
-            // Handle reply to reply - can show input with @username
-          },
+          depth: widget.depth + 1,
+          onReply: widget.onReply,
+          rootCommentId: widget.rootCommentId.isEmpty ? commentId : widget.rootCommentId,
         );
       }).toList(),
     );

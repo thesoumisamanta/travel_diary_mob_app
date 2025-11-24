@@ -275,3 +275,5 @@ class AppState extends Equatable {
     uploadError,
   ];
 }
+
+

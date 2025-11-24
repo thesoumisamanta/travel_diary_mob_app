@@ -23,7 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
   final _formKey = GlobalKey<FormState>();
-  String _selectedAccountType = 'personal';
+  String _selectedAccountType = 'Personal';
 
   @override
   void initState() {
@@ -77,10 +77,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
           if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(state.message.replaceAll('Exception: ', '')),
                 backgroundColor: AppColors.error,
               ),
             );
+          }
+          
+          // Handle successful registration WITHOUT tokens
+          if (state is AuthRegistrationSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Registration successful! Please login with your credentials.'),
+                backgroundColor: AppColors.success,
+                duration: Duration(seconds: 2),
+              ),
+            );
+            
+            // Navigate to login screen after a short delay
+            Future.delayed(const Duration(milliseconds: 800), () {
+              if (mounted) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const LoginScreen(),
+                  ),
+                );
+              }
+            });
+          }
+          
+          // Handle successful registration WITH tokens (direct login)
+          if (state is AuthAuthenticated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Registration successful! Welcome!'),
+                backgroundColor: AppColors.success,
+                duration: Duration(seconds: 1),
+              ),
+            );
+            
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/home',
+                  (route) => false,
+                );
+              }
+            });
           }
         },
         child: SingleChildScrollView(
@@ -167,14 +209,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: GestureDetector(
                           onTap: () {
                             setState(() {
-                              _selectedAccountType = 'personal';
+                              _selectedAccountType = 'Personal';
                             });
                           },
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: _selectedAccountType == 'personal'
+                                color: _selectedAccountType == 'Personal'
                                     ? AppColors.primary
                                     : AppColors.border,
                                 width: 2,
@@ -185,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               children: [
                                 Icon(
                                   Icons.person,
-                                  color: _selectedAccountType == 'personal'
+                                  color: _selectedAccountType == 'Personal'
                                       ? AppColors.primary
                                       : AppColors.textHint,
                                   size: 32,
@@ -195,7 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   'Personal',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: _selectedAccountType == 'personal'
+                                    color: _selectedAccountType == 'Personal'
                                         ? AppColors.primary
                                         : AppColors.textSecondary,
                                   ),

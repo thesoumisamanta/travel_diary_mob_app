@@ -77,9 +77,8 @@ class LoadComments extends AppEvent {
   final String postId;
   final bool refresh;
 
-   LoadComments(this.postId, {this.refresh = false});
+  LoadComments(this.postId, {this.refresh = false});
 
-  @override
   List<Object?> get props => [postId, refresh];
 }
 
@@ -89,9 +88,8 @@ class AddComment extends AppEvent {
   final String content;
   final String? parentId;
 
-   AddComment(this.postId, this.content, {this.parentId});
+  AddComment(this.postId, this.content, {this.parentId});
 
-  @override
   List<Object?> get props => [postId, content, parentId];
 }
 
@@ -99,9 +97,8 @@ class AddComment extends AppEvent {
 class DeleteComment extends AppEvent {
   final String commentId;
 
-   DeleteComment(this.commentId);
+  DeleteComment(this.commentId);
 
-  @override
   List<Object?> get props => [commentId];
 }
 
@@ -109,9 +106,8 @@ class DeleteComment extends AppEvent {
 class LikeComment extends AppEvent {
   final String commentId;
 
-   LikeComment(this.commentId);
+  LikeComment(this.commentId);
 
-  @override
   List<Object?> get props => [commentId];
 }
 
@@ -119,20 +115,20 @@ class LikeComment extends AppEvent {
 class DislikeComment extends AppEvent {
   final String commentId;
 
-   DislikeComment(this.commentId);
+  DislikeComment(this.commentId);
 
-  @override
   List<Object?> get props => [commentId];
 }
 
 // Load replies for a comment
+// Add this event class to your app_event.dart file if it doesn't exist
+
 class LoadCommentReplies extends AppEvent {
   final String commentId;
   final bool refresh;
 
-   LoadCommentReplies(this.commentId, {this.refresh = false});
+  LoadCommentReplies(this.commentId, {this.refresh = false});
 
-  @override
   List<Object?> get props => [commentId, refresh];
 }
 

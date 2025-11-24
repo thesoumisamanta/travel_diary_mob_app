@@ -1,7 +1,6 @@
-
 import 'post_model.dart';
 
-enum AccountType { personal, business }
+enum AccountType { Personal, Business }
 
 class UserModel {
   final String id;
@@ -28,7 +27,6 @@ class UserModel {
     required this.username,
     required this.email,
     required this.fullName,
-
     this.profilePicture,
     this.coverPicture,
     this.bio,
@@ -49,42 +47,61 @@ class UserModel {
     return UserModel(
       id: json['_id'] ?? json['id'] ?? '',
       username: json['username'] ?? '',
-      email: json['email'] ?? 'no-email@placeholder.com',
-      fullName: json['fullName'] ?? json['full_name'] ?? '',
-      profilePicture: json['avatar'] ?? json['profile_picture'],
-      coverPicture: json['coverImage'] ?? json['cover_picture'],
+      email: json['email'] ?? '',
+      fullName: json['fullName'] ?? '',
+      profilePicture: json['avatar'],
+      coverPicture: json['coverImage'],
       bio: json['bio'],
       location: json['location'],
       website: json['website'],
       isVerified: json['isVerified'] ?? json['is_verified'] ?? false,
-      accountType: _parseAccountType(
-        json['accountType'] ?? json['account_type'],
-      ),
-      followersCount: json['followersCount'] ?? json['followers_count'] ?? 0,
-      followingCount: json['followingCount'] ?? json['following_count'] ?? 0,
-      postsCount: json['postsCount'] ?? json['posts_count'] ?? 0,
-      isFollowing: json['isFollowing'] ?? json['is_following'] ?? false,
-      isFollowingMe: json['isFollowingMe'] ?? json['is_following_me'] ?? false,
+      accountType: _parseAccountType(json['accountType']),
+      // Safe integer parsing with default values
+      followersCount: _parseInt(json['followersCount'], 0),
+      followingCount: _parseInt(json['followingCount'], 0),
+      postsCount: _parseInt(json['postsCount'], 0),
+      // Safe boolean parsing with default values
+      isFollowing: _parseBool(json['isFollowing'], false),
+      isFollowingMe: _parseBool(json['isFollowingMe'], false),
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
       posts: json['posts'] != null
           ? (json['posts'] as List).map((p) => PostModel.fromJson(p)).toList()
           : [],
-      
     );
   }
 
+  // Helper method to safely parse integers
+  static int _parseInt(dynamic value, int defaultValue) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? defaultValue;
+    if (value is double) return value.toInt();
+    return defaultValue;
+  }
+
+  // Helper method to safely parse booleans
+  static bool _parseBool(dynamic value, bool defaultValue) {
+    if (value == null) return defaultValue;
+    if (value is bool) return value;
+    if (value is String) {
+      return value.toLowerCase() == 'true' || value == '1';
+    }
+    if (value is int) return value != 0;
+    return defaultValue;
+  }
+
   static AccountType _parseAccountType(dynamic value) {
-    if (value == null) return AccountType.personal;
+    if (value == null) return AccountType.Personal;
 
     if (value is String) {
       final lower = value.toLowerCase();
       if (lower == 'business' || lower == 'Business') {
-        return AccountType.business;
+        return AccountType.Business;
       }
     }
-    return AccountType.personal;
+    return AccountType.Personal;
   }
 
   Map<String, dynamic> toJson() {
@@ -92,15 +109,13 @@ class UserModel {
       'id': id,
       'username': username,
       'email': email,
-      'full_name': fullName,
+      'fullName': fullName,
       'profile_picture': profilePicture,
       'cover_picture': coverPicture,
       'bio': bio,
       'website': website,
       'is_verified': isVerified,
-      'account_type': accountType == AccountType.business
-          ? 'Business'
-          : 'Personal',
+      'accountType': accountType == AccountType.Business ? 'Business' : 'Personal',
       'followers_count': followersCount,
       'following_count': followingCount,
       'posts_count': postsCount,
@@ -125,6 +140,7 @@ class UserModel {
     int? followingCount,
     int? postsCount,
     bool? isFollowing,
+    bool? isFollowingMe,
     DateTime? createdAt,
     List<PostModel>? posts,
   }) {
@@ -143,6 +159,7 @@ class UserModel {
       followingCount: followingCount ?? this.followingCount,
       postsCount: postsCount ?? this.postsCount,
       isFollowing: isFollowing ?? this.isFollowing,
+      isFollowingMe: isFollowingMe ?? this.isFollowingMe,
       createdAt: createdAt ?? this.createdAt,
       posts: posts ?? this.posts,
     );

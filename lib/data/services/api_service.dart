@@ -33,8 +33,24 @@ class ApiService {
   }
 
   Future<ApiResponse> register(Map<String, dynamic> data) async {
-    final response = await _apiClient.post(ApiConstants.register, data: data);
-    return ApiResponse.fromJson(response.data, null);
+    try {
+      final response = await _apiClient.post(ApiConstants.register, data: data);
+      print('Raw register response: ${response.data}');
+
+      // Return the response as-is for better debugging
+      if (response.data is Map<String, dynamic>) {
+        return ApiResponse.fromJson(response.data, null);
+      } else {
+        return ApiResponse(
+          success: true,
+          data: response.data,
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      print('Register API error: $e');
+      rethrow;
+    }
   }
 
   Future<ApiResponse> logout() async {
@@ -306,63 +322,67 @@ class ApiService {
 
   // ==================== COMMENT APIs ====================
   // ==================== COMMENT APIs ====================
-Future<ApiResponse> getPostComments(String postId, int page) async {
-  final response = await _apiClient.get(
-    '${ApiConstants.commentPost}/$postId',
-    queryParameters: {'page': page, 'limit': 20},
-  );
-  return ApiResponse.fromJson(response.data, null);
-}
+  Future<ApiResponse> getPostComments(String postId, int page) async {
+    final response = await _apiClient.get(
+      '${ApiConstants.commentPost}/$postId',
+      queryParameters: {'page': page, 'limit': 20},
+    );
+    return ApiResponse.fromJson(response.data, null);
+  }
 
-Future<ApiResponse> getCommentReplies(String commentId, int page) async {
-  final response = await _apiClient.get(
-    '${ApiConstants.commentPost}/$commentId/replies',
-    queryParameters: {'page': page, 'limit': 10},
-  );
-  return ApiResponse.fromJson(response.data, null);
-}
+  Future<ApiResponse> getCommentReplies(String commentId, int page) async {
+    final response = await _apiClient.get(
+      '${ApiConstants.commentPost}/$commentId/replies',
+      queryParameters: {'page': page, 'limit': 10},
+    );
+    return ApiResponse.fromJson(response.data, null);
+  }
 
-Future<ApiResponse> addComment(String postId, String content, {String? parentId}) async {
-  final data = {
-    'content': content,
-    if (parentId != null) 'parentId': parentId,
-  };
-  
-  final response = await _apiClient.post(
-    '${ApiConstants.commentPost}/$postId',
-    data: data,
-  );
-  return ApiResponse.fromJson(response.data, null);
-}
+  Future<ApiResponse> addComment(
+    String postId,
+    String content, {
+    String? parentId,
+  }) async {
+    final data = {
+      'content': content,
+      if (parentId != null) 'parentId': parentId,
+    };
 
-Future<ApiResponse> likeComment(String commentId) async {
-  final response = await _apiClient.post(
-    '${ApiConstants.commentPost}/$commentId/like',
-  );
-  return ApiResponse.fromJson(response.data, null);
-}
+    final response = await _apiClient.post(
+      '${ApiConstants.commentPost}/$postId',
+      data: data,
+    );
+    return ApiResponse.fromJson(response.data, null);
+  }
 
-Future<ApiResponse> dislikeComment(String commentId) async {
-  final response = await _apiClient.post(
-    '${ApiConstants.commentPost}/$commentId/dislike',
-  );
-  return ApiResponse.fromJson(response.data, null);
-}
+  Future<ApiResponse> likeComment(String commentId) async {
+    final response = await _apiClient.post(
+      '${ApiConstants.commentPost}/$commentId/like',
+    );
+    return ApiResponse.fromJson(response.data, null);
+  }
 
-Future<ApiResponse> updateComment(String commentId, String content) async {
-  final response = await _apiClient.put(
-    '${ApiConstants.commentPost}/$commentId',
-    data: {'content': content},
-  );
-  return ApiResponse.fromJson(response.data, null);
-}
+  Future<ApiResponse> dislikeComment(String commentId) async {
+    final response = await _apiClient.post(
+      '${ApiConstants.commentPost}/$commentId/dislike',
+    );
+    return ApiResponse.fromJson(response.data, null);
+  }
 
-Future<ApiResponse> deleteComment(String commentId) async {
-  final response = await _apiClient.delete(
-    '${ApiConstants.commentPost}/$commentId',
-  );
-  return ApiResponse.fromJson(response.data, null);
-}
+  Future<ApiResponse> updateComment(String commentId, String content) async {
+    final response = await _apiClient.put(
+      '${ApiConstants.commentPost}/$commentId',
+      data: {'content': content},
+    );
+    return ApiResponse.fromJson(response.data, null);
+  }
+
+  Future<ApiResponse> deleteComment(String commentId) async {
+    final response = await _apiClient.delete(
+      '${ApiConstants.commentPost}/$commentId',
+    );
+    return ApiResponse.fromJson(response.data, null);
+  }
 
   // ==================== STORY APIs ====================
   Future<ApiResponse> getStories() async {

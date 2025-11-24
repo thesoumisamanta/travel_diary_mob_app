@@ -94,10 +94,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         'username': event.username,
         'email': event.email,
         'password': event.password,
-        'full_name': event.fullName,
-        'account_type': event.accountType,
+        'fullName': event.fullName,
+        'accountType': event.accountType,
       });
-      emit(AuthAuthenticated(user));
+      
+      // Check if user has tokens (by checking if they're stored)
+      final hasTokens = await authRepository.isAuthenticated();
+      
+      if (hasTokens) {
+        // User registered and got tokens, navigate to home
+        emit(AuthAuthenticated(user));
+      } else {
+        // Registration succeeded but no tokens were provided
+        // User needs to login
+        emit(AuthRegistrationSuccess(user: user, hasTokens: false));
+      }
     } catch (e) {
       emit(AuthError(e.toString().replaceAll('Exception: ', '')));
       await Future.delayed(const Duration(milliseconds: 100));
