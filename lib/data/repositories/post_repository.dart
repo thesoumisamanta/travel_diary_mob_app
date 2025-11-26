@@ -277,23 +277,81 @@ class PostRepository {
     }
   }
 
-  // Media Upload
+  
+
+  Future<PostModel> uploadPostWithMedia({
+  required List<File> mediaFiles,
+  required PostType postType,
+  String? title,
+  String? caption,
+  String? location,
+  List<String>? tags,
+}) async {
+  try {
+    final response = await _apiService.uploadPostWithMedia(
+      mediaFiles: mediaFiles,
+      postType: postType.toApiString(),
+      title: title ?? 'Untitled Post',
+      description: caption ?? title ?? 'Untitled Post',
+      tags: tags,
+      onProgress: (sent, total) {
+        print('Upload progress: ${(sent / total * 100).toStringAsFixed(0)}%');
+      },
+    );
+
+    print('Repository received response: ${response.success}, data: ${response.data}');
+
+    if (response.success && response.data != null) {
+      // Parse the post from response
+      try {
+        final postData = response.data is Map<String, dynamic> 
+            ? response.data 
+            : (response.data['data'] ?? response.data);
+        
+        return PostModel.fromJson(postData);
+      } catch (e) {
+        print('Error parsing post model: $e');
+        print('Response data: ${response.data}');
+        rethrow;
+      }
+    }
+    
+    throw Exception(response.message ?? 'Failed to upload post');
+  } catch (e) {
+    print('Repository upload error: $e');
+    rethrow;
+  }
+}
+
+  // Media Upload - Keep for backward compatibility
   Future<String> uploadMedia(File file) async {
-    final response = await _apiService.uploadMedia(file);
+    final response = await _apiService.uploadSingleMedia(
+      file,
+      'video', // Default field name
+    );
 
     if (response.success && response.data != null) {
       final data = response.data as Map<String, dynamic>;
-      return data['url'] ?? '';
+      return data['url'] ?? data['videoUrl'] ?? '';
     }
     throw Exception(response.message ?? 'Failed to upload media');
   }
 
   Future<List<String>> uploadMultipleMedia(List<File> files) async {
-    final response = await _apiService.uploadMultipleMedia(files);
+    final response = await _apiService.uploadMultipleImages(files);
 
     if (response.success && response.data != null) {
-      final List<dynamic> data = response.data as List<dynamic>;
-      return data.map((item) => item['url'] as String).toList();
+      // Backend returns the post object with images array
+      final data = response.data as Map<String, dynamic>;
+      if (data['images'] != null && data['images'] is List) {
+        return (data['images'] as List)
+            .map((img) => img['url'] as String)
+            .toList();
+      }
+      // Fallback for direct URL array response
+      if (data is List) {
+        return (data as List).map((item) => item['url'] as String).toList();
+      }
     }
     throw Exception(response.message ?? 'Failed to upload media');
   }

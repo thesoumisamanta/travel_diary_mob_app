@@ -146,18 +146,44 @@ class PostModel extends Equatable {
   factory PostModel.fromJson(Map<String, dynamic> json) {
     final postType = _parsePostType(json['postType'] ?? json['type']);
 
+    // 🔥 CRITICAL: Handle uploader as both String ID or UserModel object
+    UserModel author;
+    final uploaderData = json['uploader'] ?? json['author'];
+
+    if (uploaderData is Map<String, dynamic>) {
+      // Backend returned full user object (after populate)
+      author = UserModel.fromJson(uploaderData);
+    } else if (uploaderData is String) {
+      // Backend returned only ID - create minimal UserModel
+      author = UserModel(
+        id: uploaderData,
+        username: 'Loading...',
+        email: '',
+        fullName: 'Loading...',
+        accountType: AccountType.Personal,
+        createdAt: DateTime.now(),
+      );
+    } else {
+      // Fallback
+      author = UserModel.fromJson({});
+    }
+
     return PostModel(
       id: json['_id'] ?? json['id'] ?? '',
-      author: UserModel.fromJson(json['uploader'] ?? json['author'] ?? {}),
+      author: author,
       caption: json['description'] ?? json['caption'],
       title: json['title'],
       media: _buildMediaFromBackend(json, postType),
       type: postType,
       location: json['location'],
-      tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      likesCount: json['likesCount'] ?? 
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+          [],
+      likesCount:
+          json['likesCount'] ??
           (json['likes'] is List ? (json['likes'] as List).length : 0),
-      dislikesCount: json['dislikesCount'] ?? 
+      dislikesCount:
+          json['dislikesCount'] ??
           (json['dislikes'] is List ? (json['dislikes'] as List).length : 0),
       isLiked: json['isLiked'] ?? false,
       isDisliked: json['isDisliked'] ?? false,
@@ -190,9 +216,13 @@ class PostModel extends Equatable {
     return DateTime.tryParse(value.toString()) ?? DateTime.now();
   }
 
-  static List<MediaItem> _buildMediaFromBackend(Map<String, dynamic> json, PostType type) {
+  static List<MediaItem> _buildMediaFromBackend(
+    Map<String, dynamic> json,
+    PostType type,
+  ) {
     // Handle video or short type
-    if ((type == PostType.video || type == PostType.short) && json['videoUrl'] != null) {
+    if ((type == PostType.video || type == PostType.short) &&
+        json['videoUrl'] != null) {
       return [
         MediaItem(
           url: json['videoUrl'],
@@ -202,7 +232,7 @@ class PostModel extends Equatable {
         ),
       ];
     }
-    
+
     // Handle images type
     if (type == PostType.image && json['images'] != null) {
       return (json['images'] as List<dynamic>)
@@ -217,7 +247,7 @@ class PostModel extends Equatable {
           .where((item) => item.url.isNotEmpty)
           .toList();
     }
-    
+
     // Fallback: handle 'media' array if present
     if (json['media'] != null && json['media'] is List) {
       return (json['media'] as List<dynamic>)
@@ -295,8 +325,23 @@ class PostModel extends Equatable {
 
   @override
   List<Object?> get props => [
-    id, author, caption, title, media, type, location, tags,
-    likesCount, dislikesCount, commentsCount, sharesCount, viewsCount,
-    isLiked, isDisliked, isSaved, createdAt, updatedAt,
+    id,
+    author,
+    caption,
+    title,
+    media,
+    type,
+    location,
+    tags,
+    likesCount,
+    dislikesCount,
+    commentsCount,
+    sharesCount,
+    viewsCount,
+    isLiked,
+    isDisliked,
+    isSaved,
+    createdAt,
+    updatedAt,
   ];
 }

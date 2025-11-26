@@ -45,9 +45,15 @@ class _ProfileScreenState extends State<ProfileScreen>
     _tabController = TabController(length: 3, vsync: this);
 
     if (widget.isCurrentUser) {
-      context.read<AppBloc>().add(LoadUserProfile());
-      _loadCurrentUserPosts();
-    } else if (widget.username != null || widget.userId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final state = context.read<AppBloc>().state;
+        if (state.currentUser != null) {
+          context.read<AppBloc>().add(
+            LoadUserPosts(state.currentUser!.id, refresh: true),
+          );
+        }
+      });
+    } else {
       _loadOtherUserProfile();
     }
   }
@@ -55,6 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<void> _loadCurrentUserPosts() async {
     final state = context.read<AppBloc>().state;
     if (state.currentUser != null) {
+      print('Loading posts for user: ${state.currentUser!.id}');
       context.read<AppBloc>().add(
         LoadUserPosts(state.currentUser!.id, refresh: true),
       );
@@ -230,7 +237,9 @@ class _ProfileScreenState extends State<ProfileScreen>
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthUnauthenticated) {
-          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/login', (route) => false);
         }
       },
       child: widget.isCurrentUser
@@ -257,8 +266,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const Text('Failed to load profile'),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () =>
-                        context.read<AppBloc>().add(LoadUserProfile()),
+                    onPressed: () {
+                      context.read<AppBloc>().add(LoadUserProfile());
+                      _loadCurrentUserPosts();
+                    },
                     child: const Text('Retry'),
                   ),
                 ],
@@ -437,10 +448,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       selectedItemColor: AppColors.primary,
       unselectedItemColor: Colors.grey,
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          label: 'Home',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
         BottomNavigationBarItem(
           icon: Icon(Icons.search_outlined),
           label: 'Search',
@@ -612,6 +620,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildPostsGrid(List<PostModel> posts) {
+    // Check if we're loading posts
+    final isLoading = context.watch<AppBloc>().state.isLoadingPosts;
+
+    if (isLoading && posts.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (posts.isEmpty) {
       return Center(
         child: Column(
@@ -624,6 +639,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             const SizedBox(height: 16),
             Text('No posts yet', style: TextStyle(color: Colors.grey[600])),
+            const SizedBox(height: 16),
           ],
         ),
       );
@@ -663,12 +679,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                 CachedNetworkImage(
                   imageUrl: thumbnailUrl,
                   fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(color: Colors.grey[300]),
-                  errorWidget: (_, __, ___) =>
-                      Container(color: Colors.grey[300]),
+                  placeholder: (_, __) => Container(
+                    color: Colors.grey[300],
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.error_outline, color: Colors.grey),
+                  ),
                 )
               else
-                Container(color: Colors.grey[300]),
+                Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image, color: Colors.grey),
+                ),
               if (post.isVideoPost || post.isShortPost)
                 const Positioned(
                   top: 4,

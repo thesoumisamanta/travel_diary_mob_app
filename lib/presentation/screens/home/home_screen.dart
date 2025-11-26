@@ -49,6 +49,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _navigateToHome() {
+    _onItemTapped(0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -77,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _buildFeedPage(),
             const ShortsScreen(),
-            const CreatePostScreen(),
+            CreatePostScreen(onPostCreated: _navigateToHome),
             const ChatListScreen(),
             const ProfileScreen(isCurrentUser: true),
           ],

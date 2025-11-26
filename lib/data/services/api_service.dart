@@ -428,32 +428,140 @@ class ApiService {
   }
 
   // ==================== MEDIA UPLOAD ====================
-  Future<ApiResponse> uploadMedia(
-    File file, {
+  Future<ApiResponse> uploadSingleMedia(
+    File file,
+    String fieldName, {
     ProgressCallback? onProgress,
   }) async {
-    final response = await _apiClient.uploadFile(
-      ApiConstants.uploadMedia,
-      file,
-      onProgress: onProgress,
+    final formData = FormData();
+    formData.files.add(
+      MapEntry(
+        fieldName,
+        await MultipartFile.fromFile(
+          file.path,
+          filename: file.path.split('/').last,
+        ),
+      ),
+    );
+
+    final response = await _apiClient.post(
+      ApiConstants.uploadPosts,
+      data: formData,
+      onSendProgress: onProgress,
     );
     return ApiResponse.fromJson(response.data, null);
   }
 
-  Future<ApiResponse> uploadMultipleMedia(
+  Future<ApiResponse> uploadMultipleImages(
     List<File> files, {
     ProgressCallback? onProgress,
   }) async {
     final formData = FormData();
     for (var file in files) {
       formData.files.add(
-        MapEntry('files', await MultipartFile.fromFile(file.path)),
+        MapEntry(
+          'images',
+          await MultipartFile.fromFile(
+            file.path,
+            filename: file.path.split('/').last,
+          ),
+        ),
       );
     }
+
     final response = await _apiClient.post(
-      ApiConstants.uploadMedia,
+      ApiConstants.uploadPosts,
       data: formData,
+      onSendProgress: onProgress,
     );
     return ApiResponse.fromJson(response.data, null);
   }
+
+  Future<ApiResponse> uploadPostWithMedia({
+  required List<File> mediaFiles,
+  required String postType,
+  String? title,
+  String? description,
+  List<String>? tags,
+  ProgressCallback? onProgress,
+}) async {
+  try {
+    final formData = FormData();
+
+    // Add media files based on post type
+    if (postType == 'video' || postType == 'short') {
+      // Single video file
+      formData.files.add(
+        MapEntry(
+          postType, // 'video' or 'short'
+          await MultipartFile.fromFile(
+            mediaFiles.first.path,
+            filename: mediaFiles.first.path.split('/').last,
+          ),
+        ),
+      );
+    } else if (postType == 'images') {
+      // Multiple image files
+      for (var file in mediaFiles) {
+        formData.files.add(
+          MapEntry(
+            'images',
+            await MultipartFile.fromFile(
+              file.path,
+              filename: file.path.split('/').last,
+            ),
+          ),
+        );
+      }
+    }
+
+    // Add form fields
+    if (title != null && title.isNotEmpty) {
+      formData.fields.add(MapEntry('title', title));
+    }
+    if (description != null && description.isNotEmpty) {
+      formData.fields.add(MapEntry('description', description));
+    }
+    if (tags != null && tags.isNotEmpty) {
+      formData.fields.add(MapEntry('tags', tags.join(',')));
+    }
+    formData.fields.add(MapEntry('postType', postType));
+
+    final response = await _apiClient.post(
+      ApiConstants.uploadPosts,
+      data: formData,
+      onSendProgress: onProgress,
+    );
+
+    // Handle the response - backend returns the post object directly
+    final responseData = response.data;
+    
+    print('Upload response: $responseData');
+    
+    // Check if response is successful based on status code
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      // Backend returns post object directly, not wrapped
+      if (responseData is Map<String, dynamic>) {
+        return ApiResponse(
+          success: true,
+          data: responseData,
+          message: 'Post uploaded successfully',
+          statusCode: response.statusCode,
+        );
+      }
+    }
+    
+    // Handle wrapped response (if backend format changes)
+    if (responseData is Map<String, dynamic>) {
+      if (responseData.containsKey('success')) {
+        return ApiResponse.fromJson(responseData, null);
+      }
+    }
+    
+    throw Exception('Invalid response format');
+  } catch (e) {
+    print('Upload error in api_service: $e');
+    rethrow;
+  }
+}
 }

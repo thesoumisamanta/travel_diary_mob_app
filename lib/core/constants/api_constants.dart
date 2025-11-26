@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'http://192.168.0.104:8000/api';
 
   // Auth endpoints
   static const String login = '/auth/login';
@@ -53,7 +53,7 @@ class ApiConstants {
   static const String sendMessage = '/chats/send';
 
   // Media Upload
-  static const String uploadMedia = '/upload/media';
+  // static const String uploadMedia = '/upload/media';
   // Timeouts
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);}
