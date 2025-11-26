@@ -15,8 +15,8 @@ class ApiConstants {
   static const String getUserChannel = '/users/channel'; // + /:username
 
   // Follow endpoints
-  static const String followUser = '/follow/follow'; // + /:userId
-  static const String unfollowUser = '/follow/unfollow'; // + /:userId
+  static const String followUser = '/users/follow'; // + /:userId
+  static const String unfollowUser = '/users/unfollow'; // + /:userId
   static const String followers = '/follow/followers'; // + /:userId
   static const String following = '/follow/following'; // + /:userId
   static const String followStatus = '/follow/status'; // + /:userId
