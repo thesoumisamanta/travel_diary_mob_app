@@ -40,24 +40,39 @@ class _ProfileScreenState extends State<ProfileScreen>
   String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+void initState() {
+  super.initState();
+  _tabController = TabController(length: 3, vsync: this);
 
-    if (widget.isCurrentUser) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final state = context.read<AppBloc>().state;
-        if (state.currentUser != null) {
-          context.read<AppBloc>().add(
-            LoadUserPosts(state.currentUser!.id, refresh: true),
-          );
+  if (widget.isCurrentUser) {
+    // ✅ Load both user profile AND posts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('🔥 INIT: Loading current user profile and posts');
+      final appBloc = context.read<AppBloc>();
+      
+      // Load user profile first
+      appBloc.add(LoadUserProfile());
+      
+      // Wait a moment then load posts
+      Future.delayed(const Duration(milliseconds: 100), () {
+        final currentUser = appBloc.state.currentUser;
+        if (currentUser != null) {
+          print('✅ Current user exists: ${currentUser.username} (${currentUser.id})');
+          // Load posts for current user
+          appBloc.add(LoadUserPosts(currentUser.id, refresh: true));
         }
       });
-    } else {
-      _loadOtherUserProfile();
-    }
+    });
+  } else {
+    _loadOtherUserProfile();
   }
+}
 
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
   Future<void> _loadCurrentUserPosts() async {
     final state = context.read<AppBloc>().state;
     if (state.currentUser != null) {
@@ -118,11 +133,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 
   void _handleFollow() {
     if (_otherUser != null) {
@@ -251,6 +261,22 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildCurrentUserProfile() {
     return BlocBuilder<AppBloc, AppState>(
       builder: (context, state) {
+        // ✅ ADD COMPREHENSIVE LOGGING
+        print('═══════════════════════════════════════');
+        print('🔍 BUILDING CURRENT USER PROFILE');
+        print('isLoadingUser: ${state.isLoadingUser}');
+        print('isLoadingPosts: ${state.isLoadingPosts}');
+        print('currentUser: ${state.currentUser?.username}');
+        print('currentUser.id: ${state.currentUser?.id}');
+        print('userPosts.length: ${state.userPosts.length}');
+        if (state.userPosts.isNotEmpty) {
+          print('First post ID: ${state.userPosts.first.id}');
+          print('First post author: ${state.userPosts.first.author.username}');
+          print('First post type: ${state.userPosts.first.type}');
+        }
+        print('═══════════════════════════════════════');
+
+        // Show loading only if user is null
         if (state.isLoadingUser && state.currentUser == null) {
           return const Scaffold(body: LoadingWidget());
         }
@@ -268,7 +294,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ElevatedButton(
                     onPressed: () {
                       context.read<AppBloc>().add(LoadUserProfile());
-                      _loadCurrentUserPosts();
                     },
                     child: const Text('Retry'),
                   ),
@@ -278,6 +303,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           );
         }
 
+        // ✅ PASS userPosts from state - this should contain the current user's posts
         return _buildProfileScaffold(user, state.userPosts, true);
       },
     );
@@ -620,8 +646,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildPostsGrid(List<PostModel> posts) {
-    // Check if we're loading posts
     final isLoading = context.watch<AppBloc>().state.isLoadingPosts;
+
+    print('📊 _buildPostsGrid called with ${posts.length} posts, isLoading: $isLoading');
 
     if (isLoading && posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -639,7 +666,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             const SizedBox(height: 16),
             Text('No posts yet', style: TextStyle(color: Colors.grey[600])),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            Text('Posts loaded: ${posts.length}', 
+              style: TextStyle(color: Colors.grey[400], fontSize: 12)),
           ],
         ),
       );

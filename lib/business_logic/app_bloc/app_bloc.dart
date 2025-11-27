@@ -193,52 +193,62 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   Future<void> _onCreatePost(CreatePost event, Emitter<AppState> emit) async {
-  emit(
-    state.copyWith(isUploading: true, uploadProgress: 0.0, uploadError: null),
-  );
-  try {
-    // Determine post type
-    PostType postType;
-    if (event.postType == 'short') {
-      postType = PostType.short;
-    } else if (event.postType == 'video') {
-      postType = PostType.video;
-    } else {
-      postType = PostType.image;
-    }
-
-    print('BLoC: Uploading ${event.mediaFiles.length} files as ${event.postType}');
-    print('BLoC: Caption: ${event.caption}');
-    print('BLoC: Tags: ${event.tags}');
-
-    // Upload post with media directly
-    final post = await postRepository.uploadPostWithMedia(
-      mediaFiles: event.mediaFiles,
-      postType: postType,
-      title: event.caption.isNotEmpty ? event.caption : 'Untitled Post',
-      caption: event.caption.isNotEmpty ? event.caption : null,
-      location: event.location,
-      tags: event.tags,
-    );
-
-    print('BLoC: Post created successfully: ${post.id}');
-
     emit(
-      state.copyWith(
-        feedPosts: [post, ...state.feedPosts],
-        isUploading: false,
-        uploadProgress: 1.0,
-      ),
+      state.copyWith(isUploading: true, uploadProgress: 0.0, uploadError: null),
     );
-  } catch (e, stackTrace) {
-    print('BLoC: Create post error: $e');
-    print('Stack trace: $stackTrace');
-    emit(state.copyWith(
-      isUploading: false, 
-      uploadError: 'Failed to upload post: ${e.toString()}',
-    ));
+    try {
+      // Determine post type
+      PostType postType;
+      if (event.postType == 'short') {
+        postType = PostType.short;
+      } else if (event.postType == 'video') {
+        postType = PostType.video;
+      } else {
+        postType = PostType.image;
+      }
+
+      print(
+        'BLoC: Uploading ${event.mediaFiles.length} files as ${event.postType}',
+      );
+      print('BLoC: Caption: ${event.caption}');
+      print('BLoC: Tags: ${event.tags}');
+
+      // Upload post with media directly
+      final post = await postRepository.uploadPostWithMedia(
+        mediaFiles: event.mediaFiles,
+        postType: postType,
+        title: event.caption.isNotEmpty ? event.caption : 'Untitled Post',
+        caption: event.caption.isNotEmpty ? event.caption : null,
+        location: event.location,
+        tags: event.tags,
+      );
+
+      print('BLoC: Post created successfully: ${post.id}');
+
+      final currentUserId = state.currentUser?.id;
+      final isCurrentUserPost = post.author.id == currentUserId;
+
+      emit(
+        state.copyWith(
+          feedPosts: [post, ...state.feedPosts],
+          userPosts: isCurrentUserPost
+              ? [post, ...state.userPosts] // ✅ Add to userPosts too
+              : state.userPosts,
+          isUploading: false,
+          uploadProgress: 1.0,
+        ),
+      );
+    } catch (e, stackTrace) {
+      print('BLoC: Create post error: $e');
+      print('Stack trace: $stackTrace');
+      emit(
+        state.copyWith(
+          isUploading: false,
+          uploadError: 'Failed to upload post: ${e.toString()}',
+        ),
+      );
+    }
   }
-}
 
   Future<void> _onLoadShorts(LoadShorts event, Emitter<AppState> emit) async {
     if (event.refresh) {

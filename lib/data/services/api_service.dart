@@ -148,19 +148,47 @@ class ApiService {
   }
 
   Future<ApiResponse> getUserPosts(
-    String userId,
-    int page, {
-    String? type,
-  }) async {
-    final queryParams = <String, dynamic>{'page': page};
-    if (type != null) queryParams['type'] = type;
+  String userId,
+  int page, {
+  String? type,
+}) async {
+  final queryParams = <String, dynamic>{'page': page};
+  if (type != null) queryParams['type'] = type;
 
+  print('API_SERVICE: Calling getUserPosts endpoint');
+  print('   Endpoint: ${ApiConstants.allPosts}/$userId');
+  print('   Query params: $queryParams');
+
+  try {
     final response = await _apiClient.get(
       '${ApiConstants.allPosts}/$userId',
       queryParameters: queryParams,
     );
+
+    print('API_SERVICE: Response received');
+    print('   Status code: ${response.statusCode}');
+    print('   Response data type: ${response.data.runtimeType}');
+    print('   Response data: ${response.data}');
+
+    // Handle direct array response
+    if (response.data is List) {
+      return ApiResponse(
+        success: true,
+        data: response.data,
+        message: 'Success',
+        statusCode: response.statusCode,
+      );
+    }
+
+    // Handle wrapped response
     return ApiResponse.fromJson(response.data, null);
+  } catch (e, stackTrace) {
+    print('API_SERVICE: Error in getUserPosts');
+    print('   Error: $e');
+    print('   Stack trace: $stackTrace');
+    rethrow;
   }
+}
 
   Future<ApiResponse> getPostById(String postId) async {
     final response = await _apiClient.get('${ApiConstants.userPost}/$postId');
@@ -478,90 +506,90 @@ class ApiService {
   }
 
   Future<ApiResponse> uploadPostWithMedia({
-  required List<File> mediaFiles,
-  required String postType,
-  String? title,
-  String? description,
-  List<String>? tags,
-  ProgressCallback? onProgress,
-}) async {
-  try {
-    final formData = FormData();
+    required List<File> mediaFiles,
+    required String postType,
+    String? title,
+    String? description,
+    List<String>? tags,
+    ProgressCallback? onProgress,
+  }) async {
+    try {
+      final formData = FormData();
 
-    // Add media files based on post type
-    if (postType == 'video' || postType == 'short') {
-      // Single video file
-      formData.files.add(
-        MapEntry(
-          postType, // 'video' or 'short'
-          await MultipartFile.fromFile(
-            mediaFiles.first.path,
-            filename: mediaFiles.first.path.split('/').last,
-          ),
-        ),
-      );
-    } else if (postType == 'images') {
-      // Multiple image files
-      for (var file in mediaFiles) {
+      // Add media files based on post type
+      if (postType == 'video' || postType == 'short') {
+        // Single video file
         formData.files.add(
           MapEntry(
-            'images',
+            postType, // 'video' or 'short'
             await MultipartFile.fromFile(
-              file.path,
-              filename: file.path.split('/').last,
+              mediaFiles.first.path,
+              filename: mediaFiles.first.path.split('/').last,
             ),
           ),
         );
+      } else if (postType == 'images') {
+        // Multiple image files
+        for (var file in mediaFiles) {
+          formData.files.add(
+            MapEntry(
+              'images',
+              await MultipartFile.fromFile(
+                file.path,
+                filename: file.path.split('/').last,
+              ),
+            ),
+          );
+        }
       }
-    }
 
-    // Add form fields
-    if (title != null && title.isNotEmpty) {
-      formData.fields.add(MapEntry('title', title));
-    }
-    if (description != null && description.isNotEmpty) {
-      formData.fields.add(MapEntry('description', description));
-    }
-    if (tags != null && tags.isNotEmpty) {
-      formData.fields.add(MapEntry('tags', tags.join(',')));
-    }
-    formData.fields.add(MapEntry('postType', postType));
+      // Add form fields
+      if (title != null && title.isNotEmpty) {
+        formData.fields.add(MapEntry('title', title));
+      }
+      if (description != null && description.isNotEmpty) {
+        formData.fields.add(MapEntry('description', description));
+      }
+      if (tags != null && tags.isNotEmpty) {
+        formData.fields.add(MapEntry('tags', tags.join(',')));
+      }
+      formData.fields.add(MapEntry('postType', postType));
 
-    final response = await _apiClient.post(
-      ApiConstants.uploadPosts,
-      data: formData,
-      onSendProgress: onProgress,
-    );
+      final response = await _apiClient.post(
+        ApiConstants.uploadPosts,
+        data: formData,
+        onSendProgress: onProgress,
+      );
 
-    // Handle the response - backend returns the post object directly
-    final responseData = response.data;
-    
-    print('Upload response: $responseData');
-    
-    // Check if response is successful based on status code
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      // Backend returns post object directly, not wrapped
+      // Handle the response - backend returns the post object directly
+      final responseData = response.data;
+
+      print('Upload response: $responseData');
+
+      // Check if response is successful based on status code
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        // Backend returns post object directly, not wrapped
+        if (responseData is Map<String, dynamic>) {
+          return ApiResponse(
+            success: true,
+            data: responseData,
+            message: 'Post uploaded successfully',
+            statusCode: response.statusCode,
+          );
+        }
+      }
+
+      // Handle wrapped response (if backend format changes)
       if (responseData is Map<String, dynamic>) {
-        return ApiResponse(
-          success: true,
-          data: responseData,
-          message: 'Post uploaded successfully',
-          statusCode: response.statusCode,
-        );
+        if (responseData.containsKey('success')) {
+          return ApiResponse.fromJson(responseData, null);
+        }
       }
+
+      throw Exception('Invalid response format');
+    } catch (e) {
+      print('Upload error in api_service: $e');
+      rethrow;
     }
-    
-    // Handle wrapped response (if backend format changes)
-    if (responseData is Map<String, dynamic>) {
-      if (responseData.containsKey('success')) {
-        return ApiResponse.fromJson(responseData, null);
-      }
-    }
-    
-    throw Exception('Invalid response format');
-  } catch (e) {
-    print('Upload error in api_service: $e');
-    rethrow;
   }
-}
 }

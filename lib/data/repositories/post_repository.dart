@@ -42,17 +42,53 @@ class PostRepository {
     int page, {
     PostType? filterType,
   }) async {
-    final response = await _apiService.getUserPosts(
-      userId,
-      page,
-      type: filterType?.toApiString(),
-    );
+    print('🔥🔥🔥 REPOSITORY: getUserPosts called');
+    print('   userId: $userId');
+    print('   page: $page');
+    print('   filterType: $filterType');
 
-    if (response.success && response.data != null) {
-      final List<dynamic> data = response.data as List<dynamic>;
-      return data.map((json) => PostModel.fromJson(json)).toList();
+    try {
+      final response = await _apiService.getUserPosts(
+        userId,
+        page,
+        type: filterType?.toApiString(),
+      );
+
+      print('   Response success: ${response.success}');
+      print('   Response data type: ${response.data.runtimeType}');
+      print('   Response data: ${response.data}'); // ✅ ADD THIS
+
+      if (response.success && response.data != null) {
+        // Handle both List and wrapped response
+        final List<dynamic> data = response.data is List
+            ? response.data as List<dynamic>
+            : (response.data['data'] as List<dynamic>? ?? []);
+
+        print('   Number of posts returned: ${data.length}');
+
+        if (data.isEmpty) {
+          print('   ⚠️ WARNING: API returned empty array');
+          return [];
+        }
+
+        final posts = data.map((json) => PostModel.fromJson(json)).toList();
+        print('   Posts parsed successfully: ${posts.length}');
+        posts.forEach((post) {
+          print(
+            '      - Post: ${post.id}, type: ${post.type}, author: ${post.author.username}',
+          );
+        });
+
+        return posts;
+      }
+
+      print('   ❌ ERROR: ${response.message}');
+      throw Exception(response.message ?? 'Failed to load user posts');
+    } catch (e, stackTrace) {
+      print('   ❌ EXCEPTION in getUserPosts: $e');
+      print('   Stack trace: $stackTrace');
+      rethrow;
     }
-    throw Exception(response.message ?? 'Failed to load user posts');
   }
 
   Future<PostModel> getPostById(String postId) async {
@@ -277,51 +313,51 @@ class PostRepository {
     }
   }
 
-  
-
   Future<PostModel> uploadPostWithMedia({
-  required List<File> mediaFiles,
-  required PostType postType,
-  String? title,
-  String? caption,
-  String? location,
-  List<String>? tags,
-}) async {
-  try {
-    final response = await _apiService.uploadPostWithMedia(
-      mediaFiles: mediaFiles,
-      postType: postType.toApiString(),
-      title: title ?? 'Untitled Post',
-      description: caption ?? title ?? 'Untitled Post',
-      tags: tags,
-      onProgress: (sent, total) {
-        print('Upload progress: ${(sent / total * 100).toStringAsFixed(0)}%');
-      },
-    );
+    required List<File> mediaFiles,
+    required PostType postType,
+    String? title,
+    String? caption,
+    String? location,
+    List<String>? tags,
+  }) async {
+    try {
+      final response = await _apiService.uploadPostWithMedia(
+        mediaFiles: mediaFiles,
+        postType: postType.toApiString(),
+        title: title ?? 'Untitled Post',
+        description: caption ?? title ?? 'Untitled Post',
+        tags: tags,
+        onProgress: (sent, total) {
+          print('Upload progress: ${(sent / total * 100).toStringAsFixed(0)}%');
+        },
+      );
 
-    print('Repository received response: ${response.success}, data: ${response.data}');
+      print(
+        'Repository received response: ${response.success}, data: ${response.data}',
+      );
 
-    if (response.success && response.data != null) {
-      // Parse the post from response
-      try {
-        final postData = response.data is Map<String, dynamic> 
-            ? response.data 
-            : (response.data['data'] ?? response.data);
-        
-        return PostModel.fromJson(postData);
-      } catch (e) {
-        print('Error parsing post model: $e');
-        print('Response data: ${response.data}');
-        rethrow;
+      if (response.success && response.data != null) {
+        // Parse the post from response
+        try {
+          final postData = response.data is Map<String, dynamic>
+              ? response.data
+              : (response.data['data'] ?? response.data);
+
+          return PostModel.fromJson(postData);
+        } catch (e) {
+          print('Error parsing post model: $e');
+          print('Response data: ${response.data}');
+          rethrow;
+        }
       }
+
+      throw Exception(response.message ?? 'Failed to upload post');
+    } catch (e) {
+      print('Repository upload error: $e');
+      rethrow;
     }
-    
-    throw Exception(response.message ?? 'Failed to upload post');
-  } catch (e) {
-    print('Repository upload error: $e');
-    rethrow;
   }
-}
 
   // Media Upload - Keep for backward compatibility
   Future<String> uploadMedia(File file) async {

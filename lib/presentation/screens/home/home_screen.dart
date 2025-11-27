@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _buildFeedPage(),
             const ShortsScreen(),
-            CreatePostScreen(onPostCreated: _navigateToHome),
+            const CreatePostScreen(),
             const ChatListScreen(),
             const ProfileScreen(isCurrentUser: true),
           ],
