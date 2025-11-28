@@ -124,37 +124,48 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   }
 
   Future<void> _onLoadFeed(LoadFeed event, Emitter<AppState> emit) async {
-    if (event.refresh) {
-      emit(
-        state.copyWith(
-          isLoadingPosts: true,
-          currentFeedPage: 1,
-          postError: null,
-        ),
-      );
-    } else if (!state.hasMorePosts || state.isLoadingPosts) {
-      return;
-    } else {
-      emit(state.copyWith(isLoadingPosts: true, postError: null));
-    }
-
-    try {
-      final posts = await postRepository.getFeed(
-        event.refresh ? 1 : state.currentFeedPage,
-        filterType: event.filterType,
-      );
-      emit(
-        state.copyWith(
-          feedPosts: event.refresh ? posts : [...state.feedPosts, ...posts],
-          isLoadingPosts: false,
-          hasMorePosts: posts.isNotEmpty,
-          currentFeedPage: event.refresh ? 2 : state.currentFeedPage + 1,
-        ),
-      );
-    } catch (e) {
-      emit(state.copyWith(isLoadingPosts: false, postError: e.toString()));
-    }
+  if (event.refresh) {
+    print('🔄 Loading feed from backend (refresh=true)...');
+    emit(
+      state.copyWith(
+        isLoadingPosts: true,
+        currentFeedPage: 1,
+        postError: null,
+        feedPosts: [], // ✅ Clear existing posts to force fresh load
+      ),
+    );
+  } else if (!state.hasMorePosts || state.isLoadingPosts) {
+    return;
+  } else {
+    emit(state.copyWith(isLoadingPosts: true, postError: null));
   }
+
+  try {
+    final posts = await postRepository.getFeed(
+      event.refresh ? 1 : state.currentFeedPage,
+      filterType: event.filterType,
+    );
+    
+    print('✅ Loaded ${posts.length} posts from backend');
+    
+    // ✅ Log comment counts for debugging
+    for (var post in posts) {
+      print('   Post ${post.id}: commentsCount=${post.commentsCount}');
+    }
+    
+    emit(
+      state.copyWith(
+        feedPosts: event.refresh ? posts : [...state.feedPosts, ...posts],
+        isLoadingPosts: false,
+        hasMorePosts: posts.isNotEmpty,
+        currentFeedPage: event.refresh ? 2 : state.currentFeedPage + 1,
+      ),
+    );
+  } catch (e) {
+    print('❌ Error loading feed: $e');
+    emit(state.copyWith(isLoadingPosts: false, postError: e.toString()));
+  }
+}
 
   Future<void> _onLoadUserPosts(
     LoadUserPosts event,

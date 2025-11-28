@@ -228,13 +228,24 @@ class _PostCardState extends State<PostCard> {
                             ),
                             const SizedBox(width: 16),
                             GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).push(
+                              onTap: () async {
+                                // Navigate to post details
+                                await Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         PostDetailScreen(post: updatedPost),
                                   ),
                                 );
+
+                                // ✅ CRITICAL: When user comes back, reload ENTIRE feed from backend
+                                if (mounted) {
+                                  print(
+                                    '🔄 Returned from post details - Refreshing feed from backend...',
+                                  );
+                                  context.read<AppBloc>().add(
+                                    LoadFeed(refresh: true),
+                                  );
+                                }
                               },
                               child: const Icon(
                                 Icons.chat_bubble_outline,
